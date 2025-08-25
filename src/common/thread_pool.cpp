@@ -7,13 +7,18 @@
 
 ThreadPool global_thread_pool;
 
+thread_local bool is_worker_thread_flag;
+
 struct ThreadPool::Impl {
     std::vector<std::thread> workers;
     MtQueue<ThreadPool::Task> queue;
 
     void init(size_t num_threads) {
         for (size_t i = 0; i < num_threads; i++) {
-            workers.push_back(std::thread(&ThreadPool::Impl::run_worker, this));
+            workers.emplace_back([this] {
+                is_worker_thread_flag = true;
+                run_worker();
+            });
         }
     }
 
@@ -62,4 +67,8 @@ size_t ThreadPool::num_threads() const {
 
 bool ThreadPool::submit_impl(Task&& task) {
     return impl->submit(std::move(task));
+}
+
+bool ThreadPool::is_worker_thread() {  // static
+    return is_worker_thread_flag;
 }

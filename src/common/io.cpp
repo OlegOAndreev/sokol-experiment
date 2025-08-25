@@ -83,8 +83,8 @@ bool read_path_contents(const char* path, FileContents* out) {
         return false;
     }
 
-    out->contents.resize((size_t)file_size);
-    size_t bytes_read = fread(out->contents.data(), 1, (size_t)file_size, f);
+    out->contents.resize(size_t(file_size));
+    size_t bytes_read = fread(out->contents.data(), 1, size_t(file_size), f);
     if (bytes_read != (size_t)file_size) {
         SLOG_ERROR("Tried to read %ld, but got only %zu bytes from '%s'", file_size, bytes_read, path);
         out->contents.clear();
@@ -104,7 +104,7 @@ bool read_path_lines(const char* path, std::vector<std::string>* out) {
 
     char buf[10000];
     while (fgets(buf, sizeof(buf), f) != nullptr) {
-        out->push_back(std::string(buf, trim_end(buf)));
+        out->emplace_back(buf, trim_end(buf));
     }
     return true;
 }

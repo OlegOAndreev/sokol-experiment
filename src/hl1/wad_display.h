@@ -2,7 +2,6 @@
 
 #include <sokol_gfx.h>
 
-#include <atomic>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -10,25 +9,13 @@
 #include "wad3.h"
 
 // Display for WAD files from HL1.
-class WAD3Display {
-public:
-    // Set loading to true until the files have not been parsed.
-    void set_loading(bool loading) {
-        this->loading = loading;
-    }
-
+struct WAD3Display {
     // Add a new WAD file to display.
     void add_wad(const WAD3Parser& wad);
 
-    // Number of added wads.
-    size_t num_wads() const {
-        return wads.size();
-    }
-
-    // Render a new ImGui window.
+    // Render a new ImGui window. Must be called after ImGui::Frame().
     void render();
 
-private:
     struct TextureEntry {
         std::string name;
         sg_image image;

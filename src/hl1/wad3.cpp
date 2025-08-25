@@ -42,7 +42,7 @@ struct WAD3RawMiptexTrailer {
 bool parse_miptex(const FileContents& file, const WAD3DirEntry& entry, WAD3Miptex* miptex) {
     if (entry.entry_size < sizeof(WAD3RawMiptexHeader)) {
         SLOG_ERROR("%s: Entry size for %s must be at least %zu, is %d", file.name.c_str(), entry.texture_name,
-                   sizeof(WAD3RawMiptexHeader), (int)entry.entry_size);
+                   sizeof(WAD3RawMiptexHeader), int(entry.entry_size));
         return false;
     }
 
@@ -85,14 +85,18 @@ bool parse_miptex(const FileContents& file, const WAD3DirEntry& entry, WAD3Mipte
             return false;
         }
 
-        std::vector<uint8_t>& data = miptex->mipmaps[mip_level].data;
-        data.resize(mip_size * 4);
+        miptex->mipmaps[mip_level].data.resize(mip_size * 4);
+        uint8_t* data_ptr = miptex->mipmaps[mip_level].data.data();
+        const uint8_t* contents_ptr = file.contents.data();
         for (size_t i = 0; i < mip_size; i++) {
-            uint8_t color = file.contents[absolute_offset + i];
-            data[i * 4] = trailer.palette[color * 3];
-            data[i * 4 + 1] = trailer.palette[color * 3 + 1];
-            data[i * 4 + 2] = trailer.palette[color * 3 + 2];
-            data[i * 4 + 3] = 255;
+            uint8_t color = contents_ptr[absolute_offset + i];
+            uint8_t r = trailer.palette[color * 3];
+            uint8_t g = trailer.palette[color * 3 + 1];
+            uint8_t b = trailer.palette[color * 3 + 2];
+            data_ptr[i * 4] = r;
+            data_ptr[i * 4 + 1] = g;
+            data_ptr[i * 4 + 2] = b;
+            data_ptr[i * 4 + 3] = 255;
         }
 
         width /= 2;
@@ -142,7 +146,6 @@ bool process_directory(const FileContents& file, const WAD3Header& header, std::
 }
 
 }  // namespace
-
 
 bool WAD3Parser::parse(const FileContents& file) {
     valid = false;

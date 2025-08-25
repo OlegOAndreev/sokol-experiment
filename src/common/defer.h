@@ -1,5 +1,7 @@
 #pragma once
 
+#include "struct.h"
+
 // See https://www.balintkissdev.com/blog/adding-defer-keyword-to-cpp/. Added _My to avoid collisions with standard
 // symbols.
 template <typename F>
@@ -10,6 +12,7 @@ struct _MyScopedDefer {
     ~_MyScopedDefer() {
         f();
     }
+    DISABLE_MOVE_AND_COPY(_MyScopedDefer);
 
     F f;
 };

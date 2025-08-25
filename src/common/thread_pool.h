@@ -5,6 +5,7 @@
 #include <memory>
 #include <utility>
 
+#include "struct.h"
 
 // Basic thread pool with single shared task queue. Tasks must accept no parameters and return nothing.
 class ThreadPool {
@@ -16,17 +17,22 @@ public:
     // Shutdown and destroy thread pool.
     ~ThreadPool();
 
+    DISABLE_MOVE_AND_COPY(ThreadPool);
+
     // Shutdown thread pool: do not accept more tasks, wait until all the current tasks are completed.
     void shutdown();
 
     // Submit new task. The task must be a callable of type void()
     template <typename F>
     bool submit(F&& task) {
-        return submit_impl(std::move(task));
+        return submit_impl(std::forward<F>(task));
     }
 
     // Return number of threads in the pool.
     size_t num_threads() const;
+
+    // Returns true if the caller is in worker thread.
+    static bool is_worker_thread();
 
 private:
     using Task = std::function<void()>;
@@ -42,7 +48,7 @@ template <typename F>
 auto submit_future(ThreadPool& pool, F&& f) -> std::future<decltype(f())> {
     std::promise<decltype(f())> promise;
     std::future<decltype(f())> future = promise.get_future();
-    pool.submit([promise = std::move(promise), f = std::move(f)]() mutable { promise.set_value(f()); });
+    pool.submit([promise = std::move(promise), f = std::forward<F>(f)]() mutable { promise.set_value(f()); });
     return promise.get_future();
 }
 

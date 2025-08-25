@@ -38,7 +38,7 @@ bool start_parsing() {
             if (read_path_contents(wad_path.c_str(), &wad_contents)) {
                 wad.parse(wad_contents);
             }
-            parsed_queue.push(wad);
+            parsed_queue.push(std::move(wad));
         });
     }
     return true;
@@ -49,8 +49,8 @@ void process_parsed() {
     if (parsed_queue.poll(&wad)) {
         wad_display.add_wad(wad);
     }
-    if (wad_display.num_wads() == wads_to_parse) {
-        wad_display.set_loading(false);
+    if (wad_display.wads.size() == wads_to_parse) {
+        wad_display.loading = false;
     }
 }
 

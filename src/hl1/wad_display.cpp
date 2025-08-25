@@ -12,8 +12,8 @@ void WAD3Display::add_wad(const WAD3Parser& wad) {
     wad_entry.name = wad.name;
     for (const WAD3Miptex& miptex : wad.miptexs) {
         sg_image_desc img_desc = {};
-        img_desc.width = miptex.width;
-        img_desc.height = miptex.height;
+        img_desc.width = int(miptex.width);
+        img_desc.height = int(miptex.height);
         img_desc.pixel_format = SG_PIXELFORMAT_RGBA8;
         img_desc.data.subimage[0][0].ptr = miptex.mipmaps[0].data.data();
         img_desc.data.subimage[0][0].size = miptex.mipmaps[0].data.size();
@@ -59,11 +59,11 @@ void WAD3Display::render() {
             }
 
             ImGui::BeginChild("WADTreeViewWindow", ImVec2(0, 0), ImGuiChildFlags_Borders);
-            for (int wad_idx = 0; wad_idx < (int)wads.size(); wad_idx++) {
+            for (int wad_idx = 0; wad_idx < int(wads.size()); wad_idx++) {
                 const WADEntry& wad = wads[wad_idx];
 
                 if (ImGui::TreeNode(wad.name.c_str())) {
-                    for (int texture_idx = 0; texture_idx < (int)wad.textures.size(); texture_idx++) {
+                    for (int texture_idx = 0; texture_idx < int(wad.textures.size()); texture_idx++) {
                         const TextureEntry& texture = wad.textures[texture_idx];
                         bool matches = true;
                         if (!filter_text.empty()) {
@@ -105,7 +105,7 @@ void WAD3Display::render() {
                     ImGui::Checkbox("Scale", &scale_image);
                     ImGui::Separator();
 
-                    ImVec2 image_size = ImVec2((float)selected_texture.width, (float)selected_texture.height);
+                    ImVec2 image_size = ImVec2(float(selected_texture.width), float(selected_texture.height));
                     if (scale_image) {
                         ImVec2 avail_region = ImGui::GetContentRegionAvail();
                         float min_scale = std::min(avail_region.x / image_size.x, avail_region.y / image_size.y);
@@ -113,7 +113,7 @@ void WAD3Display::render() {
                         image_size.y *= min_scale;
                     }
 
-                    ImTextureID tex_id = (ImTextureID)simgui_imtextureid(selected_texture.image);
+                    ImTextureID tex_id = ImTextureID(simgui_imtextureid(selected_texture.image));
                     ImGui::Image(tex_id, image_size);
                 }
             }

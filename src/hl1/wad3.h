@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <cstring>
 #include <string>
 #include <vector>
 
@@ -25,7 +24,7 @@ struct WAD3Miptex {
     WAD3MiptexLevel mipmaps[NUM_LEVELS];
 };
 
-// Parser for WAD files from HL1
+// Parser for WAD files from HL1.
 struct WAD3Parser {
     // Parse file, set valid and other fields. Return false if parsing failed (valid will be false as well).
     bool parse(const FileContents& file);

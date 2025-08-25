@@ -33,7 +33,7 @@ public:
         if (closed) {
             return false;
         }
-        deque.push_back(value);
+        deque.push_back(std::move(value));
         condvar.notify_one();
         return true;
     }
@@ -69,7 +69,7 @@ public:
 
 private:
     std::deque<T> deque;
-    bool closed;
+    bool closed = false;
 
     mutable std::mutex mutex;
     std::condition_variable condvar;

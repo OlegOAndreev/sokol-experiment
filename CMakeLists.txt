@@ -66,6 +66,8 @@ target_sources(${PROJECT_NAME} PRIVATE
         src/common/io.cpp
         src/common/thread_pool.cpp
 
+        src/hl1/bsp.cpp
+        src/hl1/bsp_display.cpp
         src/hl1/wad3.cpp
         src/hl1/wad_display.cpp
 
