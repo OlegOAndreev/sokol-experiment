@@ -1,3 +1,5 @@
+// Sokol implementation file.
+
 #if defined(__EMSCRIPTEN__) || defined(__ANDROID__)
 #define SOKOL_GLES3
 #elif defined(__linux__)

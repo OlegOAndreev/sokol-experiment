@@ -29,7 +29,7 @@ bool start_parsing() {
     }
     wads_to_parse = wad_file_list.size();
 
-    std::string wad_dir = get_file_dir(wads_list_path);
+    std::string wad_dir = get_path_directory(wads_list_path);
     for (const std::string& wad_file : wad_file_list) {
         std::string wad_path = join_paths(wad_dir.c_str(), wad_file.c_str());
         global_thread_pool.submit([wad_path] {
@@ -49,8 +49,8 @@ void process_parsed() {
     if (parsed_queue.poll(&wad)) {
         wad_display.add_wad(wad);
     }
-    if (wad_display.wads.size() == wads_to_parse) {
-        wad_display.loading = false;
+    if (wad_display.num_wads() == wads_to_parse) {
+        wad_display.set_loading(false);
     }
 }
 

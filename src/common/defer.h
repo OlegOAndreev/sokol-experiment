@@ -4,9 +4,9 @@
 // symbols.
 template <typename F>
 struct _MyScopedDefer {
+    // No need to move here: the lambda captures by reference, move is equivalent to copy.
     _MyScopedDefer(F f) : f(f) {
     }
-
     ~_MyScopedDefer() {
         f();
     }
@@ -17,6 +17,7 @@ struct _MyScopedDefer {
 #define _MY_SCOPED_DEFER_STR_CONCAT(a, b) _MY_SCOPED_DEFER_DO_STR_CONCAT(a, b)
 #define _MY_SCOPED_DEFER_DO_STR_CONCAT(a, b) a##b
 
+// Call expression x at the end of the scope.
 #define DEFER(x) const auto _MY_SCOPED_DEFER_STR_CONCAT(_my_scoped_defer_var_, __LINE__) = _MyScopedDefer([&]() { x; })
 
 // Helper to make using DEFER more ergonomic: replace v with default value and return the previous value. Inspired by

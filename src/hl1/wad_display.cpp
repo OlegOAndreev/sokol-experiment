@@ -58,7 +58,7 @@ void WAD3Display::render() {
                 }
             }
 
-            ImGui::BeginChild("WAD Tree View Window", ImVec2(0, 0), ImGuiChildFlags_Borders);
+            ImGui::BeginChild("WADTreeViewWindow", ImVec2(0, 0), ImGuiChildFlags_Borders);
             for (int wad_idx = 0; wad_idx < (int)wads.size(); wad_idx++) {
                 const WADEntry& wad = wads[wad_idx];
 
@@ -97,16 +97,24 @@ void WAD3Display::render() {
 
             ImGui::TableSetColumnIndex(1);
 
-            // Right cell - fixed image preview
-            if (ImGui::BeginChild("ImagePreview")) {
+            if (ImGui::BeginChild("WADImagePreviewWindow")) {
                 if (selected_wad_index >= 0 && selected_texture_index >= 0) {
                     const TextureEntry& selected_texture = wads[selected_wad_index].textures[selected_texture_index];
-                    ImGui::Text("Texture: %s", selected_texture.name.c_str());
-                    ImGui::Text("Size: %ux%u", selected_texture.width, selected_texture.height);
+                    ImGui::Text("Texture: %s, size: %ux%u", selected_texture.name.c_str(), selected_texture.width,
+                                selected_texture.height);
+                    ImGui::Checkbox("Scale", &scale_image);
                     ImGui::Separator();
 
+                    ImVec2 image_size = ImVec2((float)selected_texture.width, (float)selected_texture.height);
+                    if (scale_image) {
+                        ImVec2 avail_region = ImGui::GetContentRegionAvail();
+                        float min_scale = std::min(avail_region.x / image_size.x, avail_region.y / image_size.y);
+                        image_size.x *= min_scale;
+                        image_size.y *= min_scale;
+                    }
+
                     ImTextureID tex_id = (ImTextureID)simgui_imtextureid(selected_texture.image);
-                    ImGui::Image(tex_id, ImVec2((float)selected_texture.width, (float)selected_texture.height));
+                    ImGui::Image(tex_id, image_size);
                 }
             }
             ImGui::EndChild();

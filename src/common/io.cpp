@@ -26,7 +26,7 @@ size_t trim_end(const char* line) {
 
 }  // namespace
 
-std::string get_file_dir(const char* path) {
+std::string get_path_directory(const char* path) {
     const char* last = strrchr(path, '/');
     if (last == nullptr) {
         return "";
@@ -34,7 +34,7 @@ std::string get_file_dir(const char* path) {
     return std::string(path, last);
 }
 
-std::string get_file_name(const char* path) {
+std::string get_path_filename(const char* path) {
     const char* last = strrchr(path, '/');
     if (last == nullptr) {
         return path;
@@ -63,7 +63,7 @@ bool read_path_contents(const char* path, FileContents* out) {
     out->contents.clear();
 
     FILE* f = fopen(path, "rb");
-    if (!f) {
+    if (f == nullptr) {
         SLOG_ERROR("Could not open '%s'", path);
         return false;
     }
@@ -96,7 +96,7 @@ bool read_path_contents(const char* path, FileContents* out) {
 
 bool read_path_lines(const char* path, std::vector<std::string>* out) {
     FILE* f = fopen(path, "rb");
-    if (!f) {
+    if (f == nullptr) {
         SLOG_ERROR("Could not open '%s'", path);
         return false;
     }

@@ -1,3 +1,5 @@
+// Sokol implementation file for Apple platforms.
+
 #if defined(__APPLE__)
 #define SOKOL_METAL
 #else

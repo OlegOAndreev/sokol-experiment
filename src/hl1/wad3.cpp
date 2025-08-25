@@ -47,7 +47,7 @@ bool parse_miptex(const FileContents& file, const WAD3DirEntry& entry, WAD3Mipte
     }
 
     WAD3RawMiptexHeader header = {};
-    if (!file.copy_from(entry.entry_offset, &header)) {
+    if (!file.read_at(entry.entry_offset, &header)) {
         SLOG_ERROR("%s: Entry %s out of bounds", file.name.c_str(), entry.texture_name);
         return false;
     }
@@ -59,7 +59,7 @@ bool parse_miptex(const FileContents& file, const WAD3DirEntry& entry, WAD3Mipte
 
     size_t trailer_offset = entry.entry_offset + header.mip_offsets[3] + header.width * header.height / 64;
     WAD3RawMiptexTrailer trailer = {};
-    if (!file.copy_from(trailer_offset, &trailer)) {
+    if (!file.read_at(trailer_offset, &trailer)) {
         SLOG_ERROR("%s: Entry %s out of bounds", file.name.c_str(), entry.texture_name);
         return false;
     }
@@ -103,7 +103,7 @@ bool parse_miptex(const FileContents& file, const WAD3DirEntry& entry, WAD3Mipte
 }
 
 bool parse_header(const FileContents& file, WAD3Header* header) {
-    if (!file.copy_from(0, header)) {
+    if (!file.read_at(0, header)) {
         SLOG_ERROR("%s: Insufficient data length for header", file.name.c_str());
         return false;
     }
@@ -117,7 +117,7 @@ bool parse_header(const FileContents& file, WAD3Header* header) {
 bool process_directory(const FileContents& file, const WAD3Header& header, std::vector<WAD3Miptex>* miptexs) {
     for (size_t i = 0; i < header.num_dirs; i++) {
         WAD3DirEntry entry = {};
-        if (!file.copy_from(header.dir_offset + i * sizeof(WAD3DirEntry), &entry)) {
+        if (!file.read_at(header.dir_offset + i * sizeof(WAD3DirEntry), &entry)) {
             SLOG_ERROR("%s: Insufficient data length for directory", file.name.c_str());
             return false;
         }
@@ -146,7 +146,7 @@ bool process_directory(const FileContents& file, const WAD3Header& header, std::
 
 bool WAD3Parser::parse(const FileContents& file) {
     valid = false;
-    name = get_file_name(file.name.c_str());
+    name = get_path_filename(file.name.c_str());
     miptexs.clear();
 
     WAD3Header header = {};

@@ -1,3 +1,5 @@
+// Basic shader for 2d rendering.
+
 #pragma sokol @vs vs_quad
 layout (location = 0) in vec2 position;
 layout (location = 1) in vec2 texcoord;
