@@ -1,0 +1,12 @@
+---
+Language: Cpp
+BasedOnStyle: Google
+
+AccessModifierOffset: -4
+AllowShortEnumsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+ColumnLimit: 120
+IndentCaseLabels: false
+IndentWidth: 4
+MaxEmptyLinesToKeep: 2
+TabWidth: 4

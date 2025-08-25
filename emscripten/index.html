@@ -1,0 +1,133 @@
+<!-- Based on https://github.com/emscripten-core/emscripten/blob/main/src/shell_minimal.html -->
+<!doctype html>
+<html lang="en-us">
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <title>Sokol Experiment</title>
+  <style>
+    :root {
+      background: black;
+    }
+
+    /* the canvas *must not* have any border or padding, or mouse coords will be wrong */
+    #canvas {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      border: 0px none;
+      background-color: black;
+      z-index: -1;
+      image-rendering: pixelated;
+    }
+
+    #status-container {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    #status {
+      margin: 25px auto;
+      text-align: center;
+      font-family: sans-serif;
+      font-weight: bold;
+      font-size: 16px;
+      color: rgb(100, 0, 200);
+    }
+
+    #spinner {
+      height: 50px;
+      width: 50px;
+      margin: 25px auto;
+      animation: rotation 0.8s linear infinite;
+      border-left: 10px solid rgb(0, 150, 240);
+      border-right: 10px solid rgb(0, 150, 240);
+      border-bottom: 10px solid rgb(0, 150, 240);
+      border-top: 10px solid rgb(100, 0, 200);
+      border-radius: 100%;
+    }
+
+    @keyframes rotation {
+      from {
+        transform: rotate(0deg);
+      }
+
+      to {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="emscripten" id="status-container">
+    <figure style="overflow:visible;" id="spinner">
+      <div class="emscripten"></div>
+    </figure>
+    <div class="emscripten" id="status">Initializing...</div>
+  </div>
+  <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex=-1></canvas>
+
+  <script type='text/javascript'>
+    var statusElement = document.getElementById('status');
+    var spinnerElement = document.getElementById('spinner');
+    var canvasElement = document.getElementById('canvas');
+
+    canvasElement.addEventListener("webglcontextlost", (e) => {
+      onError('WebGL context lost. You will need to reload the page.');
+      e.preventDefault();
+    }, false);
+
+    var Module = {
+      canvas: canvasElement,
+      onRuntimeInitialized: function () {
+        statusElement.style.display = 'none';
+        spinnerElement.style.display = 'none';
+      },
+      print: function (text) {
+        console.log('print("' + text + '"")')
+      },
+      printErr: function (text) {
+        console.error('printErr("' + text + '"")')
+      },
+      setStatus: function (text) {
+        if (text == '') {
+          return;
+        }
+        statusElement.style.display = 'block';
+        statusElement.innerText = text;
+        console.log('setStatus("' + text + '")')
+      },
+      totalDependencies: 0,
+      monitorRunDependencies(left) {
+        this.totalDependencies = Math.max(this.totalDependencies, left);
+        Module.setStatus(left ? 'Preparing... (' + (this.totalDependencies - left) + '/' + this.totalDependencies + ')' : 'All downloads complete.');
+      }
+    };
+    Module.setStatus('Downloading...');
+
+    function onError(text) {
+      Module.setStatus(text + '. See JavaScript console.');
+      statusElement.style.color = 'rgb(225, 15, 15)';
+      spinnerElement.style.display = 'none';
+    }
+    window.addEventListener("error", (error) => {
+      canvasElement.style.display = 'none';
+      if (error.error) {
+        onError(error.error.message);
+      } else {
+        onError(error.message);
+      }
+    });
+    window.addEventListener("unhandledrejection", (event) => onError(event.reason));
+  </script>
+
+  <script async="true" src="sokol-experiment.js" onerror="onError('Could not load Emscripten main script')"></script>
+</body>
+
+</html>

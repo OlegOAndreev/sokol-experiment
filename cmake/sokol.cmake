@@ -1,0 +1,94 @@
+if(NOT DEFINED SOKOL_SHDC_SLANG)
+  set(SOKOL_SHDC_SLANG "glsl300es:glsl310es:metal_macos")
+endif()
+
+if(CMAKE_HOST_APPLE)
+  if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "arm64")
+    set(SOKOL_SHDC_SUBDIR "osx_arm64")
+  else()
+    set(SOKOL_SHDC_SUBDIR "osx")
+  endif()
+  set(SOKOL_SHDC_EXT "")
+elseif(CMAKE_HOST_LINUX)
+  if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "arm64")
+    set(SOKOL_SHDC_SUBDIR "linux_arm64")
+  else()
+    set(SOKOL_SHDC_SUBDIR "linux")
+  endif()
+  set(SOKOL_SHDC_EXT "")
+elseif(CMAKE_HOST_WIN32)
+  set(SOKOL_SHDC_SUBDIR "win32")
+  set(SOKOL_SHDC_EXT ".exe")
+else()
+  message(FATAL_ERROR "Host system not supported")
+endif()
+
+set(SOKOL_SHDC_PATH "${CMAKE_SOURCE_DIR}/vendor/sokol-tools-bin/bin/${SOKOL_SHDC_SUBDIR}/sokol-shdc${SOKOL_SHDC_EXT}")
+if(NOT EXISTS ${SOKOL_SHDC_PATH})
+  message(FATAL_ERROR "sokol-shdc binary not found in ${SOKOL_SHDC_PATH}")
+endif()
+
+function(compile_glsl TARGET SHADER_FILE)
+    set(SHADER_PATH ${CMAKE_CURRENT_SOURCE_DIR}/${SHADER_FILE})
+    set(OUTPUT_PATH "${SHADER_PATH}.h")
+    add_custom_command(
+        COMMAND ${SOKOL_SHDC_PATH}
+            --input ${SHADER_PATH}
+            --output ${OUTPUT_PATH}
+            --slang ${SOKOL_SHDC_SLANG}
+        DEPENDS ${SHADER_PATH}
+        OUTPUT ${OUTPUT_PATH}
+        VERBATIM
+    )
+    set_source_files_properties(${OUTPUT_PATH} PROPERTIES GENERATED TRUE)
+    target_sources(${TARGET} PRIVATE ${OUTPUT_PATH})
+endfunction()
+
+function(compile_glsl_with_defines TARGET SHADER_FILE OUTPUT_SUFFIX DEFINES)
+    set(SHADER_PATH ${CMAKE_CURRENT_SOURCE_DIR}/${SHADER_FILE})
+    set(OUTPUT_PATH "${SHADER_PATH}${OUTPUT_SUFFIX}.h")
+    add_custom_command(
+        COMMAND ${SOKOL_SHDC_PATH}
+            --input ${SHADER_PATH}
+            --output ${OUTPUT_PATH}
+            --slang ${SOKOL_SHDC_SLANG}
+            --defines ${DEFINES}
+        DEPENDS ${SHADER_PATH}
+        OUTPUT ${OUTPUT_PATH}
+        COMMENT "Compiling ${SHADER_PATH} to ${OUTPUT_PATH}"
+        VERBATIM
+    )
+    set_source_files_properties(${OUTPUT_PATH} PROPERTIES GENERATED TRUE)
+    target_sources(${TARGET} PRIVATE ${OUTPUT_PATH})
+endfunction()
+
+function(add_sokol_options TARGET)
+  if(APPLE)
+    target_link_libraries(${TARGET} PRIVATE
+            "-framework Cocoa"
+            "-framework Metal"
+            "-framework MetalKit"
+            "-framework QuartzCore")
+  elseif(ANDROID)
+    target_link_libraries(${TARGET} PRIVATE
+            EGL
+            GLESv3
+            android
+            log)
+  elseif(EMSCRIPTEN)
+    target_link_libraries(${TARGET} PRIVATE
+            "-s USE_WEBGL2=1")
+  elseif(LINUX)
+    target_compile_options(${TARGET} PRIVATE -pthread)
+    target_link_libraries(${TARGET} PRIVATE -pthread)
+    target_link_libraries(${TARGET} PRIVATE
+            dl
+            m
+            GL
+            X11
+            Xcursor
+            Xi)
+  else()
+    message(FATAL_ERROR "Target system not supported")
+  endif()
+endfunction()

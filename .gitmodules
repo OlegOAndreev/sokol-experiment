@@ -1,0 +1,9 @@
+[submodule "vendor/sokol"]
+	path = vendor/sokol
+	url = https://github.com/floooh/sokol
+[submodule "vendor/sokol-tools-bin"]
+	path = vendor/sokol-tools-bin
+	url = https://github.com/floooh/sokol-tools-bin
+[submodule "vendor/imgui"]
+	path = vendor/imgui
+	url = https://github.com/ocornut/imgui
