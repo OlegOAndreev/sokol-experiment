@@ -1,8 +1,7 @@
-#include "thread_pool.h"
+#include "thread.h"
 
 #include <thread>
-
-#include "common/mt_queue.h"
+#include <vector>
 
 
 ThreadPool global_thread_pool;
@@ -11,7 +10,7 @@ thread_local bool is_worker_thread_flag;
 
 struct ThreadPool::Impl {
     std::vector<std::thread> workers;
-    MtQueue<ThreadPool::Task> queue;
+    MTQueue<ThreadPool::Task> queue;
 
     void init(size_t num_threads) {
         for (size_t i = 0; i < num_threads; i++) {
@@ -38,7 +37,7 @@ struct ThreadPool::Impl {
     void run_worker() {
         while (true) {
             ThreadPool::Task task;
-            if (!queue.pop(&task)) {
+            if (!queue.pop(task)) {
                 return;
             }
             task();

@@ -8,50 +8,57 @@
 #include <util/sokol_imgui.h>
 
 #include "common/io.h"
-#include "common/mt_queue.h"
-#include "common/slog.h"
-#include "common/thread_pool.h"
+#include "common/thread.h"
 #include "hl1/wad3.h"
 #include "hl1/wad_display.h"
+#include "sokol/log.h"
 
 
 const char* wads_list_path = "data/hl1/wads.txt";
 
 WAD3Display wad_display;
 
-size_t wads_to_parse = 0;
-MtQueue<WAD3Parser> parsed_queue;
+std::vector<WAD3Parser> parsed_wads;
+// std::future<void> parsed_wads_done;
 
 bool start_parsing() {
+    std::vector<int> a = {1};
+    std::vector<float> b;
+    submit_parallel_map(global_thread_pool, a, b, [](int i) {
+        return float(i) + 10.0f;
+     });
+    return false;
+
     std::vector<std::string> wad_file_list;
-    if (!read_path_lines(wads_list_path, &wad_file_list)) {
+    if (!file_read_lines(wads_list_path, wad_file_list)) {
         return false;
     }
-    wads_to_parse = wad_file_list.size();
+    parsed_wads.resize(wad_file_list.size());
 
-    std::string wad_dir = get_path_directory(wads_list_path);
-    for (const std::string& wad_file : wad_file_list) {
-        std::string wad_path = join_paths(wad_dir.c_str(), wad_file.c_str());
-        global_thread_pool.submit([wad_path] {
-            WAD3Parser wad;
-            FileContents wad_contents;
-            if (read_path_contents(wad_path.c_str(), &wad_contents)) {
-                wad.parse(wad_contents);
-            }
-            parsed_queue.push(std::move(wad));
-        });
-    }
+    std::string wad_dir = path_get_directory(wads_list_path);
+    // for (const std::string& wad_file : wad_file_list) {
+    //     std::string wad_path = path_join(wad_dir.c_str(), wad_file.c_str());
+    //     global_thread_pool.submit([wad_path] {
+    //         WAD3Parser wad;
+    //         FileContents wad_contents;
+    //         if (read_path_contents(wad_path.c_str(), &wad_contents)) {
+    //             wad.parse(wad_contents);
+    //         }
+    //         parsed_wads_done.get()
+    //         parsed_queue.push(std::move(wad));
+    //     });
+    // }
     return true;
 }
 
 void process_parsed() {
     WAD3Parser wad;
-    if (parsed_queue.poll(&wad)) {
-        wad_display.add_wad(wad);
-    }
-    if (wad_display.wads.size() == wads_to_parse) {
-        wad_display.loading = false;
-    }
+    // if (parsed_queue.poll(&wad)) {
+    //     wad_display.add_wad(wad);
+    // }
+    // if (wad_display.wads.size() == wads_to_parse) {
+    //     wad_display.loading = false;
+    // }
 }
 
 void init_cb() {

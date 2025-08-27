@@ -5,7 +5,8 @@
 #include <cstdarg>
 #include <cstdio>
 
-// Format string and log info or error using slog_func from sokol. Usage: SLOG_INFO("mah format %d", 123)
+// Convenient wrapper to format string and log info or error using slog_func from sokol. Usage: SLOG_INFO("mah format
+// %d", 123)
 #define SLOG_INFO(...) _my_slog_impl(3, __FILE__, __LINE__, __VA_ARGS__)
 #define SLOG_ERROR(...) _my_slog_impl(1, __FILE__, __LINE__, __VA_ARGS__)
 

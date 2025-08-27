@@ -4,7 +4,7 @@
 #include <cstring>
 
 #include "common/io.h"
-#include "common/slog.h"
+#include "sokol/log.h"
 
 // See https://twhl.info/wiki/page/Specification:_WAD3 for details
 namespace {
@@ -39,7 +39,7 @@ struct WAD3RawMiptexTrailer {
     uint8_t palette[256 * 3];
 };
 
-bool parse_miptex(const FileContents& file, const WAD3DirEntry& entry, WAD3Miptex* miptex) {
+bool parse_miptex(const FileContents& file, const WAD3DirEntry& entry, WAD3Miptex& miptex) {
     if (entry.entry_size < sizeof(WAD3RawMiptexHeader)) {
         SLOG_ERROR("%s: Entry size for %s must be at least %zu, is %d", file.name.c_str(), entry.texture_name,
                    sizeof(WAD3RawMiptexHeader), int(entry.entry_size));
@@ -47,7 +47,7 @@ bool parse_miptex(const FileContents& file, const WAD3DirEntry& entry, WAD3Mipte
     }
 
     WAD3RawMiptexHeader header = {};
-    if (!file.read_at(entry.entry_offset, &header)) {
+    if (!file.read_at(entry.entry_offset, header)) {
         SLOG_ERROR("%s: Entry %s out of bounds", file.name.c_str(), entry.texture_name);
         return false;
     }
@@ -59,7 +59,7 @@ bool parse_miptex(const FileContents& file, const WAD3DirEntry& entry, WAD3Mipte
 
     size_t trailer_offset = entry.entry_offset + header.mip_offsets[3] + header.width * header.height / 64;
     WAD3RawMiptexTrailer trailer = {};
-    if (!file.read_at(trailer_offset, &trailer)) {
+    if (!file.read_at(trailer_offset, trailer)) {
         SLOG_ERROR("%s: Entry %s out of bounds", file.name.c_str(), entry.texture_name);
         return false;
     }
@@ -70,9 +70,9 @@ bool parse_miptex(const FileContents& file, const WAD3DirEntry& entry, WAD3Mipte
         return false;
     }
 
-    miptex->name = std::string(header.texture_name, strnlen(header.texture_name, 16));
-    miptex->width = header.width;
-    miptex->height = header.height;
+    miptex.name = std::string(header.texture_name, strnlen(header.texture_name, 16));
+    miptex.width = header.width;
+    miptex.height = header.height;
 
     uint32_t width = header.width;
     uint32_t height = header.height;
@@ -85,8 +85,8 @@ bool parse_miptex(const FileContents& file, const WAD3DirEntry& entry, WAD3Mipte
             return false;
         }
 
-        miptex->mipmaps[mip_level].data.resize(mip_size * 4);
-        uint8_t* data_ptr = miptex->mipmaps[mip_level].data.data();
+        miptex.mipmaps[mip_level].data.resize(mip_size * 4);
+        uint8_t* data_ptr = miptex.mipmaps[mip_level].data.data();
         const uint8_t* contents_ptr = file.contents.data();
         for (size_t i = 0; i < mip_size; i++) {
             uint8_t color = contents_ptr[absolute_offset + i];
@@ -106,22 +106,22 @@ bool parse_miptex(const FileContents& file, const WAD3DirEntry& entry, WAD3Mipte
     return true;
 }
 
-bool parse_header(const FileContents& file, WAD3Header* header) {
+bool parse_header(const FileContents& file, WAD3Header& header) {
     if (!file.read_at(0, header)) {
         SLOG_ERROR("%s: Insufficient data length for header", file.name.c_str());
         return false;
     }
-    if (memcmp(header->magic, "WAD3", 4) != 0) {
+    if (memcmp(header.magic, "WAD3", 4) != 0) {
         SLOG_ERROR("%s: Invalid magic number (expected 'WAD3')", file.name.c_str());
         return false;
     }
     return true;
 }
 
-bool process_directory(const FileContents& file, const WAD3Header& header, std::vector<WAD3Miptex>* miptexs) {
+bool process_directory(const FileContents& file, const WAD3Header& header, std::vector<WAD3Miptex>& miptexs) {
     for (size_t i = 0; i < header.num_dirs; i++) {
         WAD3DirEntry entry = {};
-        if (!file.read_at(header.dir_offset + i * sizeof(WAD3DirEntry), &entry)) {
+        if (!file.read_at(header.dir_offset + i * sizeof(WAD3DirEntry), entry)) {
             SLOG_ERROR("%s: Insufficient data length for directory", file.name.c_str());
             return false;
         }
@@ -135,11 +135,11 @@ bool process_directory(const FileContents& file, const WAD3Header& header, std::
         }
 
         WAD3Miptex miptex = {};
-        if (!parse_miptex(file, entry, &miptex)) {
+        if (!parse_miptex(file, entry, miptex)) {
             continue;
         }
 
-        miptexs->push_back(std::move(miptex));
+        miptexs.push_back(std::move(miptex));
     }
 
     return true;
@@ -149,14 +149,14 @@ bool process_directory(const FileContents& file, const WAD3Header& header, std::
 
 bool WAD3Parser::parse(const FileContents& file) {
     valid = false;
-    name = get_path_filename(file.name.c_str());
+    name = path_get_filename(file.name.c_str());
     miptexs.clear();
 
     WAD3Header header = {};
-    if (!parse_header(file, &header)) {
+    if (!parse_header(file, header)) {
         return false;
     }
-    if (!process_directory(file, header, &miptexs)) {
+    if (!process_directory(file, header, miptexs)) {
         return false;
     }
 

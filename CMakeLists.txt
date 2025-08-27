@@ -1,8 +1,11 @@
 cmake_minimum_required(VERSION 3.25)
 
 project(sokol-experiment)
+if(APPLE)
+  enable_language(OBJCXX)
+endif()
 
-include(cmake/sokol.cmake)
+include(sokol/sokol.cmake)
 
 if(NOT CMAKE_BUILD_TYPE)
   if(EMSCRIPTEN)
@@ -19,7 +22,7 @@ if(SCCACHE_PATH)
   set(CMAKE_CXX_COMPILER_LAUNCHER ${SCCACHE_PATH})
 endif()
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_executable(${PROJECT_NAME})
@@ -31,8 +34,6 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
         -Wall
         -Wextra
         -Wno-unused-parameter
-        -D_FORTIFY_SOURCE=2
-        -D_GLIBCXX_ASSERTIONS
         -D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_FAST
         -fno-delete-null-pointer-checks
         -fno-strict-overflow
@@ -47,15 +48,15 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
         # -fsanitize=thread
         -fsanitize=undefined
   )
+
+  if(NOT APPLE)
+    target_compile_options(${PROJECT_NAME} PRIVATE
+        -D_FORTIFY_SOURCE=2
+        -D_GLIBCXX_ASSERTIONS)
+  endif()
 endif()
 
-add_sokol_options(${PROJECT_NAME})
-if(APPLE)
-  enable_language(OBJCXX)
-  target_sources(${PROJECT_NAME} PRIVATE src/sokol.mm)
-else()
-  target_sources(${PROJECT_NAME} PRIVATE src/sokol.cpp)
-endif()
+target_add_sokol(${PROJECT_NAME})
 
 compile_glsl(${PROJECT_NAME} src/shaders/quad_shader.glsl)
 
@@ -64,7 +65,7 @@ target_sources(${PROJECT_NAME} PRIVATE
         src/main.cpp
 
         src/common/io.cpp
-        src/common/thread_pool.cpp
+        src/common/thread.cpp
 
         src/hl1/bsp.cpp
         src/hl1/bsp_display.cpp
@@ -77,5 +78,4 @@ target_sources(${PROJECT_NAME} PRIVATE
 target_include_directories(${PROJECT_NAME} PRIVATE
         src
         vendor/imgui
-        vendor/sokol
 )

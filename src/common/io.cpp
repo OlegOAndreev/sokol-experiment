@@ -7,7 +7,7 @@
 #include <cstring>
 
 #include "defer.h"
-#include "slog.h"
+#include "sokol/log.h"
 
 
 namespace {
@@ -26,7 +26,7 @@ size_t trim_end(const char* line) {
 
 }  // namespace
 
-std::string get_path_directory(const char* path) {
+std::string path_get_directory(const char* path) {
     const char* last = strrchr(path, '/');
     if (last == nullptr) {
         return "";
@@ -34,7 +34,7 @@ std::string get_path_directory(const char* path) {
     return std::string(path, last);
 }
 
-std::string get_path_filename(const char* path) {
+std::string path_get_filename(const char* path) {
     const char* last = strrchr(path, '/');
     if (last == nullptr) {
         return path;
@@ -42,7 +42,7 @@ std::string get_path_filename(const char* path) {
     return last;
 }
 
-std::string join_paths(const char* path1, const char* path2) {
+std::string path_join(const char* path1, const char* path2) {
     if (strlen(path2) == 0) {
         return path1;
     }
@@ -58,9 +58,9 @@ std::string join_paths(const char* path1, const char* path2) {
 }
 
 
-bool read_path_contents(const char* path, FileContents* out) {
-    out->name = path;
-    out->contents.clear();
+bool file_read_contents(const char* path, FileContents& out) {
+    out.name = path;
+    out.contents.clear();
 
     FILE* f = fopen(path, "rb");
     if (f == nullptr) {
@@ -83,18 +83,18 @@ bool read_path_contents(const char* path, FileContents* out) {
         return false;
     }
 
-    out->contents.resize(size_t(file_size));
-    size_t bytes_read = fread(out->contents.data(), 1, size_t(file_size), f);
+    out.contents.resize(size_t(file_size));
+    size_t bytes_read = fread(out.contents.data(), 1, size_t(file_size), f);
     if (bytes_read != (size_t)file_size) {
         SLOG_ERROR("Tried to read %ld, but got only %zu bytes from '%s'", file_size, bytes_read, path);
-        out->contents.clear();
+        out.contents.clear();
         return false;
     }
 
     return true;
 }
 
-bool read_path_lines(const char* path, std::vector<std::string>* out) {
+bool file_read_lines(const char* path, std::vector<std::string>& out) {
     FILE* f = fopen(path, "rb");
     if (f == nullptr) {
         SLOG_ERROR("Could not open '%s'", path);
@@ -104,7 +104,7 @@ bool read_path_lines(const char* path, std::vector<std::string>* out) {
 
     char buf[10000];
     while (fgets(buf, sizeof(buf), f) != nullptr) {
-        out->emplace_back(buf, trim_end(buf));
+        out.emplace_back(buf, trim_end(buf));
     }
     return true;
 }
