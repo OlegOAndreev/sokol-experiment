@@ -1,5 +1,7 @@
 #include "io.h"
 
+#include <sokol_slog.h>
+
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
@@ -7,7 +9,6 @@
 #include <cstring>
 
 #include "defer.h"
-#include "sokol/log.h"
 
 
 namespace {

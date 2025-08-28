@@ -3,6 +3,7 @@
 #include <sokol_gfx.h>
 #include <sokol_glue.h>
 #include <sokol_log.h>
+#include <sokol_slog.h>
 #include <sokol_time.h>
 #include <util/sokol_debugtext.h>
 #include <util/sokol_imgui.h>
@@ -11,7 +12,6 @@
 #include "common/thread.h"
 #include "hl1/wad3.h"
 #include "hl1/wad_display.h"
-#include "sokol/log.h"
 
 
 const char* wads_list_path = "data/hl1/wads.txt";

@@ -1,10 +1,11 @@
 #include "wad3.h"
 
+#include <sokol_slog.h>
+
 #include <cstdint>
 #include <cstring>
 
 #include "common/io.h"
-#include "sokol/log.h"
 
 // See https://twhl.info/wiki/page/Specification:_WAD3 for details
 namespace {

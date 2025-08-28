@@ -3,7 +3,7 @@
 #     enable_language(OBJCXX)
 #   endif()
 
-set(SOKOL_DIR ${CMAKE_CURRENT_LIST_DIR})
+set(THIS_SOKOL_DIR ${CMAKE_CURRENT_LIST_DIR})
 
 if(NOT DEFINED SOKOL_SHDC_SLANG)
   set(SOKOL_SHDC_SLANG "glsl300es:glsl310es:metal_macos")
@@ -80,7 +80,7 @@ endfunction()
 function(target_add_sokol TARGET)
   target_include_directories(${TARGET} PRIVATE
     ${SOKOL_INCLUDE_DIR}
-    ${SOKOL_DIR}/include
+    ${THIS_SOKOL_DIR}
   )
   if(APPLE)
     target_link_libraries(${TARGET} PRIVATE
@@ -111,8 +111,8 @@ function(target_add_sokol TARGET)
     message(FATAL_ERROR "Target system not supported")
   endif()
   if(APPLE)
-    target_sources(${PROJECT_NAME} PRIVATE "${SOKOL_DIR}/sokol.mm")
+    target_sources(${PROJECT_NAME} PRIVATE "${THIS_SOKOL_DIR}/sokol_impl.mm")
   else()
-    target_sources(${PROJECT_NAME} PRIVATE "${SOKOL_DIR}/sokol.cpp")
+    target_sources(${PROJECT_NAME} PRIVATE "${THIS_SOKOL_DIR}/sokol_impl.cpp")
   endif()
 endfunction()
