@@ -1,5 +1,8 @@
 // Sokol implementation file.
 
+// Comment for prod/benchmark builds.
+#define SOKOL_DEBUG
+
 #if defined(__EMSCRIPTEN__) || defined(__ANDROID__)
 #define SOKOL_GLES3
 #elif defined(__linux__)
@@ -10,7 +13,6 @@
 
 #include <imgui.h>
 
-#define SOKOL_DEBUG
 #define SOKOL_IMPL
 #include <sokol_app.h>
 #include <sokol_gfx.h>

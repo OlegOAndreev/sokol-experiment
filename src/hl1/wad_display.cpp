@@ -2,6 +2,7 @@
 
 #include <imgui.h>
 #include <sokol_app.h>
+#include <sokol_slog.h>
 #include <util/sokol_imgui.h>
 
 #include "wad3.h"
@@ -76,13 +77,23 @@ void WAD3Display::render() {
                                 flags |= ImGuiTreeNodeFlags_Selected;
                             }
 
+                            // Reduce spacing for tree nodes
+                            ImGuiStyle& style = ImGui::GetStyle();
+                            // float original_frame_padding_y = style.FramePadding.y;
+                            float original_item_spacing_y = style.ItemSpacing.y;
+                            // style.FramePadding.y = 0.0f;
+                            style.ItemSpacing.y = 0.0f;
+                            style.ItemInnerSpacing.y += 10.0f;
                             if (ImGui::TreeNodeEx(texture.name.c_str(), flags)) {
                                 if (ImGui::IsItemClicked()) {
                                     selected_wad_index = wad_idx;
                                     selected_texture_index = texture_idx;
                                 }
                             }
-
+                            // style.FramePadding.y = original_frame_padding_y;
+                            style.ItemSpacing.y = original_item_spacing_y;
+                           style.ItemInnerSpacing.y -= 10.0f;
+ 
                             if (ImGui::IsItemHovered()) {
                                 ImGui::BeginTooltip();
                                 ImGui::Text("Size: %ux%u", texture.width, texture.height);

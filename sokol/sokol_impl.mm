@@ -1,5 +1,8 @@
 // Sokol implementation file for Apple platforms.
 
+// Comment for prod/benchmark builds.
+#define SOKOL_DEBUG
+
 #if defined(__APPLE__)
 #define SOKOL_METAL
 #else
@@ -8,7 +11,6 @@
 
 #include <imgui.h>
 
-#define SOKOL_DEBUG
 #define SOKOL_IMPL
 #include <sokol_app.h>
 #include <sokol_gfx.h>

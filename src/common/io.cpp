@@ -40,7 +40,7 @@ std::string path_get_filename(const char* path) {
     if (last == nullptr) {
         return path;
     }
-    return last;
+    return last + 1;
 }
 
 std::string path_join(const char* path1, const char* path2) {

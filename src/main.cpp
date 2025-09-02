@@ -8,7 +8,12 @@
 #include <util/sokol_debugtext.h>
 #include <util/sokol_imgui.h>
 
+#include <atomic>
+#include <semaphore>
+#include <thread>
+
 #include "common/io.h"
+#include "common/queue.h"
 #include "common/thread.h"
 #include "hl1/wad3.h"
 #include "hl1/wad_display.h"
@@ -16,49 +21,51 @@
 
 const char* wads_list_path = "data/hl1/wads.txt";
 
-WAD3Display wad_display;
+struct DisplayState {
+    WAD3Display wad_display;
 
-std::vector<WAD3Parser> parsed_wads;
-// std::future<void> parsed_wads_done;
+    std::vector<WAD3Parser> parsed_wads;
+    std::atomic<size_t> remaining_wad_count;
+    bool finished_loading = false;
+};
+
+DisplayState g_state;
 
 bool start_parsing() {
-    std::vector<int> a = {1};
-    std::vector<float> b;
-    submit_parallel_map(global_thread_pool, a, b, [](int i) {
-        return float(i) + 10.0f;
-     });
-    return false;
-
     std::vector<std::string> wad_file_list;
     if (!file_read_lines(wads_list_path, wad_file_list)) {
         return false;
     }
-    parsed_wads.resize(wad_file_list.size());
+    g_state.parsed_wads.resize(wad_file_list.size());
+    g_state.remaining_wad_count = g_state.parsed_wads.size();
 
     std::string wad_dir = path_get_directory(wads_list_path);
-    // for (const std::string& wad_file : wad_file_list) {
-    //     std::string wad_path = path_join(wad_dir.c_str(), wad_file.c_str());
-    //     global_thread_pool.submit([wad_path] {
-    //         WAD3Parser wad;
-    //         FileContents wad_contents;
-    //         if (read_path_contents(wad_path.c_str(), &wad_contents)) {
-    //             wad.parse(wad_contents);
-    //         }
-    //         parsed_wads_done.get()
-    //         parsed_queue.push(std::move(wad));
-    //     });
-    // }
+    for (size_t i = 0; i < wad_file_list.size(); i++) {
+        std::string wad_path = path_join(wad_dir.c_str(), wad_file_list[i].c_str());
+        WAD3Parser& wad = g_state.parsed_wads[i];
+        g_thread_pool.submit([wad_path, &wad]() mutable {
+            FileContents wad_contents;
+            if (file_read_contents(wad_path.c_str(), wad_contents)) {
+                wad.parse(wad_contents);
+            }
+            g_state.remaining_wad_count--;
+        });
+    }
     return true;
 }
 
 void process_parsed() {
+    if (g_state.finished_loading) {
+        return;
+    }
     WAD3Parser wad;
-    // if (parsed_queue.poll(&wad)) {
-    //     wad_display.add_wad(wad);
-    // }
-    // if (wad_display.wads.size() == wads_to_parse) {
-    //     wad_display.loading = false;
-    // }
+    if (g_state.remaining_wad_count == 0) {
+        for (const WAD3Parser& wad : g_state.parsed_wads) {
+            g_state.wad_display.add_wad(wad);
+        }
+        g_state.wad_display.loading = false;
+        g_state.finished_loading = true;
+    }
 }
 
 void init_cb() {
@@ -103,7 +110,7 @@ void frame_cb() {
     pass.swapchain = sglue_swapchain();
     sg_begin_pass(pass);
 
-    wad_display.render();
+    g_state.wad_display.render();
 
     simgui_render();
     sg_end_pass();
