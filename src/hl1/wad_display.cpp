@@ -63,7 +63,7 @@ void WAD3Display::render() {
             for (int wad_idx = 0; wad_idx < int(wads.size()); wad_idx++) {
                 const WADEntry& wad = wads[wad_idx];
 
-                if (ImGui::TreeNode(wad.name.c_str())) {
+                if (ImGui::TreeNodeEx(wad.name.c_str(), ImGuiTreeNodeFlags_SpanFullWidth)) {
                     for (int texture_idx = 0; texture_idx < int(wad.textures.size()); texture_idx++) {
                         const TextureEntry& texture = wad.textures[texture_idx];
                         bool matches = true;
@@ -72,28 +72,19 @@ void WAD3Display::render() {
                         }
 
                         if (matches) {
-                            ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+                            ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen |
+                                                       ImGuiTreeNodeFlags_SpanFullWidth;
                             if (selected_wad_index == wad_idx && selected_texture_index == texture_idx) {
                                 flags |= ImGuiTreeNodeFlags_Selected;
                             }
 
-                            // Reduce spacing for tree nodes
-                            ImGuiStyle& style = ImGui::GetStyle();
-                            // float original_frame_padding_y = style.FramePadding.y;
-                            float original_item_spacing_y = style.ItemSpacing.y;
-                            // style.FramePadding.y = 0.0f;
-                            style.ItemSpacing.y = 0.0f;
-                            style.ItemInnerSpacing.y += 10.0f;
                             if (ImGui::TreeNodeEx(texture.name.c_str(), flags)) {
                                 if (ImGui::IsItemClicked()) {
                                     selected_wad_index = wad_idx;
                                     selected_texture_index = texture_idx;
                                 }
                             }
-                            // style.FramePadding.y = original_frame_padding_y;
-                            style.ItemSpacing.y = original_item_spacing_y;
-                           style.ItemInnerSpacing.y -= 10.0f;
- 
+
                             if (ImGui::IsItemHovered()) {
                                 ImGui::BeginTooltip();
                                 ImGui::Text("Size: %ux%u", texture.width, texture.height);
