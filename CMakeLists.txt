@@ -44,9 +44,6 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
         -fno-strict-overflow
         -fstack-protector
         -ftrivial-auto-var-init=zero
-        -fsanitize=address
-        # -fsanitize=thread
-        -fsanitize=undefined
   )
 
   if(NOT APPLE)
@@ -55,7 +52,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
         -D_GLIBCXX_ASSERTIONS)
   endif()
 
-  if(ENABLE_ASAN)
+  if(ENABLE_ASAN AND NOT(EMSCRIPTEN))
     target_compile_options(${PROJECT_NAME} PRIVATE 
         -fsanitize=address
         -fsanitize=undefined
@@ -65,7 +62,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
         -fsanitize=undefined
     )
   endif()
-  if(ENABLE_TSAN)
+  if(ENABLE_TSAN AND NOT(EMSCRIPTEN))
     target_compile_options(${PROJECT_NAME} PRIVATE 
         -fsanitize=thread
     )
@@ -103,8 +100,12 @@ target_include_directories(${PROJECT_NAME} PRIVATE
         vendor/imgui
 )
 
+# # DEBUG DEBUG DEBUG
+# target_link_options(${PROJECT_NAME} PRIVATE /opt/homebrew/lib/libtcmalloc.dylib)
+# # DEBUG DEBUG DEBUG
+
 if(EMSCRIPTEN)
-  # target_link_options(${PROJECT_NAME} PRIVATE -sASSERTIONS -sNO_EXIT_RUNTIME)
+  # target_link_options(${PROJECT_NAME} PRIVATE -sASSERTIONS -sNO_EXIT_RUNTIME --memoryprofiler)
 endif()
 
 if(BUILD_TESTS AND NOT(EMSCRIPTEN))

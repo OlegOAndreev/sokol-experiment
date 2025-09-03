@@ -88,7 +88,9 @@ void init_cb() {
     simgui_setup(simgui_desc);
 
     if (!start_parsing()) {
+#if !defined(__EMSCRIPTEN__)
         return sapp_quit();
+#endif
     }
 }
 
