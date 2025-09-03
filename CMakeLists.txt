@@ -11,6 +11,7 @@ if(APPLE)
 endif()
 
 include(sokol/sokol.cmake)
+include(scripts/macos/entitlements.cmake)
 
 if(NOT CMAKE_BUILD_TYPE)
   if(EMSCRIPTEN)
@@ -75,6 +76,8 @@ endif()
 
 target_add_sokol(${PROJECT_NAME} ${SOKOL_DEBUG} false)
 
+target_add_macos_entitlements(${PROJECT_NAME})
+
 compile_glsl(${PROJECT_NAME} src/shaders/quad_shader.glsl)
 
 set(COMMON_SOURCES
@@ -101,17 +104,6 @@ target_include_directories(${PROJECT_NAME} PRIVATE
         vendor/imgui
 )
 
-if(APPLE)
-  # See https://github.com/cmyr/cargo-instruments/issues/40#issuecomment-894287229
-  add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND codesign
-        -s - -f
-        --entitlements ${CMAKE_SOURCE_DIR}/scripts/macos/entitlements.plist
-        "$<TARGET_FILE:${PROJECT_NAME}>"
-    VERBATIM
-  )
-endif()
-
 if(EMSCRIPTEN)
   target_link_options(${PROJECT_NAME} PRIVATE
         # -sASSERTIONS
@@ -124,6 +116,7 @@ if(BUILD_TESTS AND NOT(EMSCRIPTEN))
   add_executable(tests)
 
   target_add_sokol_for_tests(tests)
+  target_add_macos_entitlements(tests)
   target_include_directories(tests PRIVATE
         src
   )
