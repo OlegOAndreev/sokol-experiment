@@ -1,7 +1,5 @@
 #include "io.h"
 
-#include <sokol_slog.h>
-
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
@@ -9,6 +7,7 @@
 #include <cstring>
 
 #include "defer.h"
+#include "slog.h"
 
 
 namespace {
@@ -32,6 +31,9 @@ std::string path_get_directory(const char* path) {
     if (last == nullptr) {
         return "";
     }
+    if (last == path) {
+        return "/";
+    }
     return std::string(path, last);
 }
 
@@ -44,7 +46,7 @@ std::string path_get_filename(const char* path) {
 }
 
 std::string path_join(const char* path1, const char* path2) {
-    if (strlen(path2) == 0) {
+    if (path2[0] == 0) {
         return path1;
     }
     if (path2[0] == '/') {

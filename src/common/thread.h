@@ -9,10 +9,8 @@
 // Basic thread pool with single shared task queue. Tasks must accept no parameters and return nothing.
 class ThreadPool {
 public:
-    // Initialize thread pool with default hardware concurrency.
-    ThreadPool();
-    // Initialize thread pool with given number of threads.
-    ThreadPool(size_t num_threads);
+    // Initialize thread pool with given name and number of threads.
+    ThreadPool(const char* name, size_t num_threads);
     // Shutdown and destroy thread pool.
     ~ThreadPool();
 
@@ -37,8 +35,8 @@ public:
     // Return number of threads in the pool.
     size_t num_threads() const;
 
-    // Returns true if the caller is in worker thread.
-    static bool is_worker_thread();
+    // Return the pool name.
+    const char* name() const;
 
 private:
     DISABLE_MOVE_AND_COPY(ThreadPool);
@@ -58,5 +56,12 @@ private:
     bool submit_impl(Task&& task);
 };
 
-// Global thread pool with default concurrency, use it for CPU bound tasks.
-extern ThreadPool g_thread_pool;
+// Return current thread pool: global thread pool if called outside of a ThreadPool task, or the ThreadPool executing
+// current task.
+ThreadPool& thread_pool();
+
+// Return the global thread pool with default concurrency, should be the default choice for CPU bound tasks.
+ThreadPool& global_thread_pool();
+
+// Return the local thread pool if called inside a ThreadPool task, nullptr if called outside of a ThreadPool task.
+ThreadPool* local_thread_pool();

@@ -1,10 +1,12 @@
 ---
-Checks: 'clang-diagnostic-*,
+Checks: '
+    clang-diagnostic-*,
     clang-analyzer-*,
     cppcoreguidelines-*,
     modernize-*,
     performance-*,
     -cppcoreguidelines-avoid-c-arrays,
+    -cppcoreguidelines-avoid-do-while,
     -cppcoreguidelines-avoid-magic-numbers,
     -cppcoreguidelines-avoid-non-const-global-variables,
     -cppcoreguidelines-macro-usage,
@@ -19,4 +21,6 @@ Checks: 'clang-diagnostic-*,
     -modernize-use-auto,
     -modernize-use-designated-initializers,
     -modernize-use-nodiscard,
-    -modernize-use-trailing-return-type'
+    -modernize-use-ranges,
+    -modernize-use-trailing-return-type
+'

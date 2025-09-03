@@ -1,19 +1,22 @@
 #include "thread.h"
 
-#include <sokol_slog.h>
-
 #include <cstddef>
 #include <mutex>
 #include <semaphore>
+#include <string>
 #include <thread>
 #include <vector>
 
 #include "queue.h"
+#include "slog.h"
+#include "thread_name.h"
 
 
-ThreadPool g_thread_pool;
+thread_local ThreadPool* tl_worker_pool = nullptr;
+thread_local size_t tl_worker_id = 0;
 
 struct ThreadPool::Impl {
+    std::string pool_name;
     std::vector<std::thread> workers;
 
     std::counting_semaphore<> available{0};
@@ -21,12 +24,12 @@ struct ThreadPool::Impl {
     Queue<ThreadPool::Task> queue;
     bool closed = false;
 
-    static thread_local Impl* tl_worker_pool;
-
-    void init(size_t num_threads) {
-        for (size_t i = 0; i < num_threads; i++) {
-            workers.emplace_back([this] {
-                tl_worker_pool = this;
+    void init(const char* name, size_t num_threads, ThreadPool* parent) {
+        pool_name = name;
+        for (size_t idx = 0; idx < num_threads; idx++) {
+            workers.emplace_back([this, parent, idx] {
+                tl_worker_pool = parent;
+                tl_worker_id = idx + 1;
                 run_worker();
             });
         }
@@ -40,6 +43,7 @@ struct ThreadPool::Impl {
             }
             closed = true;
         }
+        // This should wake all the workers.
         available.release(ptrdiff_t(workers.size()));
         for (std::thread& worker : workers) {
             if (worker.joinable()) {
@@ -122,13 +126,8 @@ struct ThreadPool::Impl {
     }
 };
 
-thread_local ThreadPool::Impl* ThreadPool::Impl::tl_worker_pool = nullptr;
-
-ThreadPool::ThreadPool() : ThreadPool(std::thread::hardware_concurrency()) {
-}
-
-ThreadPool::ThreadPool(size_t num_threads) : impl(new Impl()) {
-    impl->init(num_threads);
+ThreadPool::ThreadPool(const char* name, size_t num_threads) : impl(new Impl()) {
+    impl->init(name, num_threads, this);
 }
 
 ThreadPool::~ThreadPool() {
@@ -143,10 +142,37 @@ size_t ThreadPool::num_threads() const {
     return impl->workers.size();
 }
 
+const char* ThreadPool::name() const {
+    return impl->pool_name.c_str();
+}
+
 bool ThreadPool::submit_impl(Task&& task) {
     return impl->submit(std::move(task));
 }
 
-bool ThreadPool::is_worker_thread() {  // static
-    return Impl::tl_worker_pool != nullptr;
+ThreadPool& thread_pool() {
+    if (tl_worker_pool != nullptr) {
+        return *tl_worker_pool;
+    }
+    return global_thread_pool();
+}
+
+ThreadPool& global_thread_pool() {
+    static ThreadPool thread_pool{"global-pool", std::thread::hardware_concurrency()};
+    return thread_pool;
+}
+
+ThreadPool* local_thread_pool() {
+    return tl_worker_pool;
+}
+
+const char* local_thread_pool_name() {
+    if (tl_worker_pool != nullptr) {
+        return tl_worker_pool->name();
+    }
+    return nullptr;
+}
+
+size_t local_thread_pool_worker_id() {
+    return tl_worker_id;
 }

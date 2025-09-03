@@ -1,11 +1,11 @@
 #include "wad3.h"
 
-#include <sokol_slog.h>
-
 #include <cstdint>
 #include <cstring>
 
 #include "common/io.h"
+#include "common/slog.h"
+
 
 // See https://twhl.info/wiki/page/Specification:_WAD3 for details
 namespace {
@@ -149,9 +149,12 @@ bool process_directory(const FileContents& file, const WAD3Header& header, std::
 }  // namespace
 
 bool WAD3Parser::parse(const FileContents& file) {
+    SLOG_INFO("Parsing WAD3 %s", file.name.c_str());
+
     valid = false;
     name = path_get_filename(file.name.c_str());
     miptexs.clear();
+
 
     WAD3Header header = {};
     if (!parse_header(file, header)) {

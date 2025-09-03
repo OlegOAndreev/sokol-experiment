@@ -77,7 +77,7 @@ function(compile_glsl_with_defines TARGET SHADER_FILE OUTPUT_SUFFIX DEFINES)
     target_sources(${TARGET} PRIVATE ${OUTPUT_PATH})
 endfunction()
 
-function(target_add_sokol TARGET)
+function(target_add_sokol TARGET SOKOL_DEBUG)
   target_include_directories(${TARGET} PRIVATE
     ${SOKOL_INCLUDE_DIR}
     ${THIS_SOKOL_DIR}
@@ -111,8 +111,20 @@ function(target_add_sokol TARGET)
     message(FATAL_ERROR "Target system not supported")
   endif()
   if(APPLE)
-    target_sources(${PROJECT_NAME} PRIVATE "${THIS_SOKOL_DIR}/sokol_impl.mm")
+    target_sources(${TARGET} PRIVATE "${THIS_SOKOL_DIR}/sokol_impl.mm")
   else()
-    target_sources(${PROJECT_NAME} PRIVATE "${THIS_SOKOL_DIR}/sokol_impl.cpp")
+    target_sources(${TARGET} PRIVATE "${THIS_SOKOL_DIR}/sokol_impl.cpp")
   endif()
+
+  if(SOKOL_DEBUG)
+    target_compile_definitions(${TARGET} PRIVATE SOKOL_DEBUG)
+  endif()
+endfunction()
+
+# Adds minimal required files for building tests
+function(target_add_sokol_for_tests TARGET)
+  target_include_directories(${TARGET} PRIVATE
+    ${SOKOL_INCLUDE_DIR}
+  )
+  target_sources(${TARGET} PRIVATE "${THIS_SOKOL_DIR}/sokol_for_tests.cpp")
 endfunction()

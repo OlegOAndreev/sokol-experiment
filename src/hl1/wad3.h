@@ -6,6 +6,7 @@
 
 #include "common/io.h"
 
+
 // One mip level of WAD texture.
 struct WAD3MiptexLevel {
     // RGBA data (alpha is always 255).

@@ -78,6 +78,25 @@
     var spinnerElement = document.getElementById('spinner');
     var canvasElement = document.getElementById('canvas');
 
+    function setStatus(text) {
+      if (text == '') {
+        return;
+      }
+      statusElement.style.display = 'block';
+      statusElement.innerText = text;
+      console.log('setStatus("' + text + '")')
+    }
+
+    function onError(text) {
+      setStatus(text + '. See JavaScript console.');
+      statusElement.style.color = 'rgb(225, 15, 15)';
+      spinnerElement.style.display = 'none';
+      throw new Error(text);
+    }
+    if (!window.crossOriginIsolated) {
+      onError('The page is not cross-origin isolated');
+    }
+
     canvasElement.addEventListener("webglcontextlost", (e) => {
       onError('WebGL context lost. You will need to reload the page.');
       e.preventDefault();
@@ -95,27 +114,15 @@
       printErr: function (text) {
         console.error('printErr("' + text + '"")')
       },
-      setStatus: function (text) {
-        if (text == '') {
-          return;
-        }
-        statusElement.style.display = 'block';
-        statusElement.innerText = text;
-        console.log('setStatus("' + text + '")')
-      },
+      setStatus: setStatus,
       totalDependencies: 0,
       monitorRunDependencies(left) {
         this.totalDependencies = Math.max(this.totalDependencies, left);
-        Module.setStatus(left ? 'Preparing... (' + (this.totalDependencies - left) + '/' + this.totalDependencies + ')' : 'All downloads complete.');
+        setStatus(left ? 'Preparing... (' + (this.totalDependencies - left) + '/' + this.totalDependencies + ')' : 'All downloads complete.');
       }
     };
-    Module.setStatus('Downloading...');
+    setStatus('Downloading...');
 
-    function onError(text) {
-      Module.setStatus(text + '. See JavaScript console.');
-      statusElement.style.color = 'rgb(225, 15, 15)';
-      spinnerElement.style.display = 'none';
-    }
     window.addEventListener("error", (error) => {
       canvasElement.style.display = 'none';
       if (error.error) {
@@ -125,6 +132,7 @@
       }
     });
     window.addEventListener("unhandledrejection", (event) => onError(event.reason));
+
   </script>
 
   <script async="true" src="sokol-experiment.js" onerror="onError('Could not load Emscripten main script')"></script>

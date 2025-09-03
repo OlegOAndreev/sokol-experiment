@@ -8,6 +8,7 @@
 
 #include "wad3.h"
 
+
 // Display for WAD files from HL1.
 struct WAD3Display {
     // Add a new WAD file to display.

@@ -1,8 +1,5 @@
 // Sokol implementation file.
 
-// Comment for prod/benchmark builds.
-#define SOKOL_DEBUG
-
 #if defined(__EMSCRIPTEN__) || defined(__ANDROID__)
 #define SOKOL_GLES3
 #elif defined(__linux__)

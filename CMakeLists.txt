@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 3.25)
 
+option(BUILD_TESTS "Build tests" ON)
+option(SOKOL_DEBUG "Enable Sokol Debug" ON)
+option(ENABLE_ASAN "Enable address and UB sanitizers" ON)
+option(ENABLE_TSAN "Enable thread sanitizer" OFF)
+
 project(sokol-experiment)
 if(APPLE)
   enable_language(OBJCXX)
@@ -43,35 +48,53 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
         # -fsanitize=thread
         -fsanitize=undefined
   )
-  target_link_options(${PROJECT_NAME} PRIVATE
-        -fsanitize=address
-        # -fsanitize=thread
-        -fsanitize=undefined
-  )
 
   if(NOT APPLE)
     target_compile_options(${PROJECT_NAME} PRIVATE
         -D_FORTIFY_SOURCE=2
         -D_GLIBCXX_ASSERTIONS)
   endif()
+
+  if(ENABLE_ASAN)
+    target_compile_options(${PROJECT_NAME} PRIVATE 
+        -fsanitize=address
+        -fsanitize=undefined
+    )
+    target_link_options(${PROJECT_NAME} PRIVATE
+        -fsanitize=address
+        -fsanitize=undefined
+    )
+  endif()
+  if(ENABLE_TSAN)
+    target_compile_options(${PROJECT_NAME} PRIVATE 
+        -fsanitize=thread
+    )
+    target_link_options(${PROJECT_NAME} PRIVATE
+        -fsanitize=thread
+    )
+  endif()
 endif()
 
-target_add_sokol(${PROJECT_NAME})
+target_add_sokol(${PROJECT_NAME} ${SOKOL_DEBUG} false)
 
 compile_glsl(${PROJECT_NAME} src/shaders/quad_shader.glsl)
 
-file(GLOB IMGUI_SOURCES vendor/imgui/*.cpp)
-target_sources(${PROJECT_NAME} PRIVATE
-        src/main.cpp
-
+set(COMMON_SOURCES
         src/common/io.cpp
         src/common/thread.cpp
-
+)
+set(HL1_SOURCES
         src/hl1/bsp.cpp
         src/hl1/bsp_display.cpp
         src/hl1/wad3.cpp
         src/hl1/wad_display.cpp
+)
+file(GLOB IMGUI_SOURCES vendor/imgui/*.cpp)
 
+target_sources(${PROJECT_NAME} PRIVATE
+        src/main.cpp
+        ${COMMON_SOURCES}
+        ${HL1_SOURCES}
         ${IMGUI_SOURCES}
 )
 
@@ -79,3 +102,26 @@ target_include_directories(${PROJECT_NAME} PRIVATE
         src
         vendor/imgui
 )
+
+if(EMSCRIPTEN)
+  # target_link_options(${PROJECT_NAME} PRIVATE -sASSERTIONS -sNO_EXIT_RUNTIME)
+endif()
+
+if(BUILD_TESTS AND NOT(EMSCRIPTEN))
+  add_executable(tests)
+
+  target_add_sokol_for_tests(tests)
+  target_include_directories(tests PRIVATE
+        src
+  )
+
+  file(GLOB TEST_SOURCES src/**/tests/*_test.cpp)
+  target_sources(tests PRIVATE
+        ${TEST_SOURCES}
+        ${COMMON_SOURCES}
+        ${IMGUI_SOURCES}
+  )
+
+  add_subdirectory(vendor/snitch)
+  target_link_libraries(tests PRIVATE snitch::snitch)
+endif()

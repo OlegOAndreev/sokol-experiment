@@ -3,17 +3,15 @@
 #include <sokol_gfx.h>
 #include <sokol_glue.h>
 #include <sokol_log.h>
-#include <sokol_slog.h>
 #include <sokol_time.h>
 #include <util/sokol_debugtext.h>
 #include <util/sokol_imgui.h>
 
 #include <atomic>
-#include <semaphore>
-#include <thread>
 
 #include "common/io.h"
 #include "common/queue.h"
+#include "common/slog.h"
 #include "common/thread.h"
 #include "hl1/wad3.h"
 #include "hl1/wad_display.h"
@@ -25,7 +23,7 @@ struct DisplayState {
     WAD3Display wad_display;
 
     std::vector<WAD3Parser> parsed_wads;
-    std::atomic<size_t> remaining_wad_count;
+    std::atomic<size_t> remaining_wad_count = 0;
     bool finished_loading = false;
 };
 
@@ -43,7 +41,7 @@ bool start_parsing() {
     for (size_t i = 0; i < wad_file_list.size(); i++) {
         std::string wad_path = path_join(wad_dir.c_str(), wad_file_list[i].c_str());
         WAD3Parser& wad = g_state.parsed_wads[i];
-        g_thread_pool.submit([wad_path, &wad]() mutable {
+        thread_pool().submit([wad_path, &wad]() mutable {
             FileContents wad_contents;
             if (file_read_contents(wad_path.c_str(), wad_contents)) {
                 wad.parse(wad_contents);

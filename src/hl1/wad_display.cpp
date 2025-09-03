@@ -2,9 +2,9 @@
 
 #include <imgui.h>
 #include <sokol_app.h>
-#include <sokol_slog.h>
 #include <util/sokol_imgui.h>
 
+#include "common/slog.h"
 #include "wad3.h"
 
 

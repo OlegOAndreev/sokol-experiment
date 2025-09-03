@@ -1,8 +1,5 @@
 // Sokol implementation file for Apple platforms.
 
-// Comment for prod/benchmark builds.
-#define SOKOL_DEBUG
-
 #if defined(__APPLE__)
 #define SOKOL_METAL
 #else
