@@ -49,7 +49,8 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
   if(NOT APPLE)
     target_compile_options(${PROJECT_NAME} PRIVATE
         -D_FORTIFY_SOURCE=2
-        -D_GLIBCXX_ASSERTIONS)
+        -D_GLIBCXX_ASSERTIONS
+    )
   endif()
 
   if(ENABLE_ASAN AND NOT(EMSCRIPTEN))
@@ -100,12 +101,23 @@ target_include_directories(${PROJECT_NAME} PRIVATE
         vendor/imgui
 )
 
-# # DEBUG DEBUG DEBUG
-# target_link_options(${PROJECT_NAME} PRIVATE /opt/homebrew/lib/libtcmalloc.dylib)
-# # DEBUG DEBUG DEBUG
+if(APPLE)
+  # See https://github.com/cmyr/cargo-instruments/issues/40#issuecomment-894287229
+  add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND codesign
+        -s - -f
+        --entitlements ${CMAKE_SOURCE_DIR}/scripts/macos/entitlements.plist
+        "$<TARGET_FILE:${PROJECT_NAME}>"
+    VERBATIM
+  )
+endif()
 
 if(EMSCRIPTEN)
-  # target_link_options(${PROJECT_NAME} PRIVATE -sASSERTIONS -sNO_EXIT_RUNTIME --memoryprofiler)
+  target_link_options(${PROJECT_NAME} PRIVATE
+        # -sASSERTIONS
+        # -sNO_EXIT_RUNTIME
+        # --memoryprofiler
+  )
 endif()
 
 if(BUILD_TESTS AND NOT(EMSCRIPTEN))

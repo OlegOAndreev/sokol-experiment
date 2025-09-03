@@ -87,16 +87,19 @@ function(target_add_sokol TARGET SOKOL_DEBUG)
             "-framework Cocoa"
             "-framework Metal"
             "-framework MetalKit"
-            "-framework QuartzCore")
+            "-framework QuartzCore"
+    )
   elseif(ANDROID)
     target_link_libraries(${TARGET} PRIVATE
             EGL
             GLESv3
             android
-            log)
+            log
+    )
   elseif(EMSCRIPTEN)
     target_link_libraries(${TARGET} PRIVATE
-            "-s USE_WEBGL2=1")
+            -sMAX_WEBGL_VERSION=2
+    )
   elseif(LINUX)
     target_compile_options(${TARGET} PRIVATE -pthread)
     target_link_libraries(${TARGET} PRIVATE -pthread)
@@ -106,7 +109,8 @@ function(target_add_sokol TARGET SOKOL_DEBUG)
             GL
             X11
             Xcursor
-            Xi)
+            Xi
+    )
   else()
     message(FATAL_ERROR "Target system not supported")
   endif()
