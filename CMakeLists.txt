@@ -123,11 +123,21 @@ if(BUILD_TESTS AND NOT(EMSCRIPTEN))
 
   file(GLOB TEST_SOURCES src/**/tests/*_test.cpp)
   target_sources(tests PRIVATE
+        src/tests_main.cpp
         ${TEST_SOURCES}
         ${COMMON_SOURCES}
         ${IMGUI_SOURCES}
   )
 
-  add_subdirectory(vendor/snitch)
-  target_link_libraries(tests PRIVATE snitch::snitch)
+  target_compile_options(tests PRIVATE 
+        -fsanitize=address
+        -fsanitize=undefined
+  )
+  target_link_options(tests PRIVATE
+        -fsanitize=address
+        -fsanitize=undefined
+  )
+
+  add_subdirectory(vendor/doctest)
+  target_link_libraries(tests PRIVATE doctest::doctest)
 endif()

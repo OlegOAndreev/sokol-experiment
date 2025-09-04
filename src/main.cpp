@@ -56,7 +56,6 @@ void process_parsed() {
     if (g_state.finished_loading) {
         return;
     }
-    WAD3Parser wad;
     if (g_state.remaining_wad_count == 0) {
         for (const WAD3Parser& wad : g_state.parsed_wads) {
             g_state.wad_display.add_wad(wad);

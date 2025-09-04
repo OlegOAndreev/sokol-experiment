@@ -1,20 +1,24 @@
 #include "common/queue.h"
 
-#include <snitch/snitch.hpp>
+#include <doctest/doctest.h>
+
 #include <string>
 #include <vector>
 
 #include "common/struct.h"
+#include "common_test.h"
 
+
+TEST_SUITE_BEGIN("queue");
 
 TEST_CASE("Queue basic operations") {
-    SECTION("newly created queue is empty") {
+    SUBCASE("newly created queue is empty") {
         Queue<int> q;
         CHECK(q.empty());
         CHECK(q.size() == 0);
     }
 
-    SECTION("push and pop single element") {
+    SUBCASE("push and pop single element") {
         Queue<int> q;
         q.push(42);
         CHECK(!q.empty());
@@ -26,7 +30,7 @@ TEST_CASE("Queue basic operations") {
         CHECK(q.size() == 0);
     }
 
-    SECTION("push multiple elements maintains FIFO order") {
+    SUBCASE("push multiple elements maintains FIFO order") {
         Queue<int> q;
         q.push(1);
         q.push(2);
@@ -44,7 +48,7 @@ TEST_CASE("Queue basic operations") {
 }
 
 TEST_CASE("Queue with custom capacity") {
-    SECTION("fill up to capacity") {
+    SUBCASE("fill up to capacity") {
         Queue<int> q(4);
         q.push(1);
         q.push(2);
@@ -55,14 +59,14 @@ TEST_CASE("Queue with custom capacity") {
         CHECK(q.front() == 1);
     }
 
-    SECTION("exceeding capacity triggers resize") {
+    SUBCASE("exceeding capacity triggers resize") {
         Queue<int> q(4);
-        for (int i = 0; i < 5; ++i) {
+        for (int i = 0; i < 5; i++) {
             q.push(i);
         }
 
         CHECK(q.size() == 5);
-        for (int i = 0; i < 5; ++i) {
+        for (int i = 0; i < 5; i++) {
             CHECK(q.front() == i);
             q.pop();
         }
@@ -71,7 +75,7 @@ TEST_CASE("Queue with custom capacity") {
 }
 
 TEST_CASE("Queue circular buffer behavior") {
-    SECTION("wrap around without resize") {
+    SUBCASE("wrap around without resize") {
         Queue<int> q(4);
         q.push(1);
         q.push(2);
@@ -94,7 +98,7 @@ TEST_CASE("Queue circular buffer behavior") {
         CHECK(q.empty());
     }
 
-    SECTION("resize when wrapped") {
+    SUBCASE("resize when wrapped") {
         Queue<int> q(4);
         q.push(1);
         q.push(2);
@@ -123,34 +127,9 @@ TEST_CASE("Queue circular buffer behavior") {
 }
 
 TEST_CASE("Queue with move semantics") {
-    struct MoveOnly {
-        DISABLE_COPY(MoveOnly);
-
-        int value;
-
-        MoveOnly() : value(0) {
-        }
-
-        explicit MoveOnly(int v) : value(v) {
-        }
-
-        MoveOnly(MoveOnly&& other) noexcept : value(other.value) {
-            other.value = -1;
-        }
-
-        MoveOnly& operator=(MoveOnly&& other) noexcept {
-            value = other.value;
-            other.value = -1;
-            return *this;
-        }
-
-        ~MoveOnly() {
-        }
-    };
-
     Queue<MoveOnly> q;
 
-    SECTION("move objects into queue") {
+    SUBCASE("move objects into queue") {
         q.push(MoveOnly(42));
         CHECK(q.front().value == 42);
 
@@ -164,7 +143,7 @@ TEST_CASE("Queue with move semantics") {
 }
 
 TEST_CASE("Queue with copyable objects") {
-    SECTION("copy and move strings") {
+    SUBCASE("copy and move strings") {
         Queue<std::string> q;
         std::string s1 = "hello";
         q.push(s1);
@@ -173,13 +152,13 @@ TEST_CASE("Queue with copyable objects") {
 
         std::string s2 = "world";
         q.push(std::move(s2));
-        CHECK(s2.empty() || s2 == "");
+        CHECK(s2.empty());
 
         q.pop();
         CHECK(q.front() == "world");
     }
 
-    SECTION("multiple strings with resize") {
+    SUBCASE("multiple strings with resize") {
         Queue<std::string> q;
         std::vector<std::string> strings = {"alpha", "beta", "gamma", "delta", "epsilon",
                                             "zeta",  "eta",  "theta", "iota",  "kappa"};
@@ -203,14 +182,14 @@ TEST_CASE("Queue stress test") {
     Queue<int> q;
     const int iterations = 1000;
 
-    SECTION("push and pop many elements") {
-        for (int i = 0; i < iterations; ++i) {
+    SUBCASE("push and pop many elements") {
+        for (int i = 0; i < iterations; i++) {
             q.push(i);
         }
 
         CHECK(q.size() == iterations);
 
-        for (int i = 0; i < iterations; ++i) {
+        for (int i = 0; i < iterations; i++) {
             CHECK(q.front() == i);
             q.pop();
         }
@@ -218,23 +197,23 @@ TEST_CASE("Queue stress test") {
         CHECK(q.empty());
     }
 
-    SECTION("interleaved push and pop") {
+    SUBCASE("interleaved push and pop") {
         int pushed = 0;
         int popped = 0;
 
-        for (int i = 0; i < 10; ++i) {
+        for (int i = 0; i < 10; i++) {
             q.push(pushed);
             pushed++;
         }
 
-        for (int round = 0; round < 100; ++round) {
-            for (int i = 0; i < 5 && !q.empty(); ++i) {
+        for (int round = 0; round < 100; round++) {
+            for (int i = 0; i < 5 && !q.empty(); i++) {
                 CHECK(q.front() == popped);
                 q.pop();
                 popped++;
             }
 
-            for (int i = 0; i < 7; ++i) {
+            for (int i = 0; i < 7; i++) {
                 q.push(pushed);
                 pushed++;
             }
@@ -251,7 +230,7 @@ TEST_CASE("Queue stress test") {
 }
 
 TEST_CASE("Queue edge cases") {
-    SECTION("queue with capacity 1") {
+    SUBCASE("queue with capacity 1") {
         Queue<int> q(1);
         q.push(42);
         CHECK(q.front() == 42);
@@ -262,10 +241,10 @@ TEST_CASE("Queue edge cases") {
         CHECK(q.size() == 2);
     }
 
-    SECTION("repeated push/pop at boundary") {
+    SUBCASE("repeated push/pop at boundary") {
         Queue<int> q(2);
 
-        for (int round = 0; round < 10; ++round) {
+        for (int round = 0; round < 10; round++) {
             q.push(round * 3);
             q.push(round * 3 + 1);
             q.push(round * 3 + 2);
@@ -280,3 +259,5 @@ TEST_CASE("Queue edge cases") {
         }
     }
 }
+
+TEST_SUITE_END();

@@ -1,12 +1,14 @@
 #include "common/defer.h"
 
-#include <snitch/snitch.hpp>
+#include <doctest/doctest.h>
+
 #include <string>
 #include <vector>
 
+TEST_SUITE_BEGIN("defer");
 
 TEST_CASE("DEFER basic functionality") {
-    SECTION("defer executes at scope end") {
+    SUBCASE("defer executes at scope end") {
         int value = 0;
         {
             CHECK(value == 0);
@@ -16,7 +18,7 @@ TEST_CASE("DEFER basic functionality") {
         CHECK(value == 42);
     }
 
-    SECTION("defer executes in reverse order") {
+    SUBCASE("defer executes in reverse order") {
         std::vector<int> order;
         {
             DEFER(order.push_back(3));
@@ -30,7 +32,7 @@ TEST_CASE("DEFER basic functionality") {
         CHECK(order[2] == 3);
     }
 
-    SECTION("defer captures by reference") {
+    SUBCASE("defer captures by reference") {
         int a = 10;
         int b = 20;
         {
@@ -41,10 +43,10 @@ TEST_CASE("DEFER basic functionality") {
         CHECK(a == 30);
     }
 
-    SECTION("defer in loop") {
+    SUBCASE("defer in loop") {
         std::vector<int> values;
 
-        for (int i = 0; i < 3; ++i) {
+        for (int i = 0; i < 3; i++) {
             DEFER(values.push_back(i));
         }
 
@@ -56,7 +58,7 @@ TEST_CASE("DEFER basic functionality") {
 }
 
 TEST_CASE("DEFER with multiple statements") {
-    SECTION("defer can execute multiple statements") {
+    SUBCASE("defer can execute multiple statements") {
         int counter = 0;
         std::string message;
         {
@@ -73,7 +75,7 @@ TEST_CASE("DEFER with multiple statements") {
 }
 
 TEST_CASE("DEFER in nested scopes") {
-    SECTION("nested defers execute in correct order") {
+    SUBCASE("nested defers execute in correct order") {
         std::vector<int> order;
         {
             DEFER(order.push_back(4));
@@ -96,7 +98,7 @@ TEST_CASE("DEFER in nested scopes") {
 }
 
 TEST_CASE("DEFER with function calls") {
-    SECTION("defer can call functions") {
+    SUBCASE("defer can call functions") {
         int cleanup_count = 0;
         auto cleanup = [&cleanup_count] { cleanup_count++; };
 
@@ -107,7 +109,7 @@ TEST_CASE("DEFER with function calls") {
         CHECK(cleanup_count == 1);
     }
 
-    SECTION("defer with member function calls") {
+    SUBCASE("defer with member function calls") {
         struct Resource {
             bool is_open = true;
             int close_count = 0;
@@ -130,7 +132,7 @@ TEST_CASE("DEFER with function calls") {
 }
 
 TEST_CASE("DEFER with early returns") {
-    SECTION("defer executes even with early return") {
+    SUBCASE("defer executes even with early return") {
         auto test_func = [](bool early_return) {
             int value = 0;
             {
@@ -149,7 +151,7 @@ TEST_CASE("DEFER with early returns") {
 }
 
 TEST_CASE("DEFER with exceptions") {
-    SECTION("defer executes during exception unwinding") {
+    SUBCASE("defer executes during exception unwinding") {
         int cleanup_count = 0;
 
         auto throwing_func = [&cleanup_count]() {
@@ -161,7 +163,7 @@ TEST_CASE("DEFER with exceptions") {
         CHECK(cleanup_count == 1);
     }
 
-    SECTION("multiple defers during exception") {
+    SUBCASE("multiple defers during exception") {
         std::vector<int> order;
 
         auto throwing_func = [&order]() {
@@ -180,21 +182,21 @@ TEST_CASE("DEFER with exceptions") {
 }
 
 TEST_CASE("move_from") {
-    SECTION("move_from with int") {
+    SUBCASE("move_from with int") {
         int value = 42;
         int moved = move_from(value);
         CHECK(moved == 42);
         CHECK(value == 0);
     }
 
-    SECTION("move_from with string") {
+    SUBCASE("move_from with string") {
         std::string str = "hello";
         std::string moved = move_from(str);
         CHECK(moved == "hello");
         CHECK(str.empty());
     }
 
-    SECTION("move_from with custom struct") {
+    SUBCASE("move_from with custom struct") {
         struct Point {
             int x = 0;
             int y = 0;
@@ -208,7 +210,7 @@ TEST_CASE("move_from") {
         CHECK(p.y == 0);
     }
 
-    SECTION("move_from with pointer") {
+    SUBCASE("move_from with pointer") {
         int* ptr = new int(42);
         int* moved = move_from(ptr);
         CHECK(*moved == 42);
@@ -216,3 +218,5 @@ TEST_CASE("move_from") {
         delete moved;
     }
 }
+
+TEST_SUITE_END();

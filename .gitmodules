@@ -7,6 +7,6 @@
 [submodule "vendor/imgui"]
 	path = vendor/imgui
 	url = https://github.com/ocornut/imgui
-[submodule "vendor/snitch"]
-	path = vendor/snitch
-	url = https://github.com/snitch-org/snitch
+[submodule "vendor/doctest"]
+	path = vendor/doctest
+	url = https://github.com/doctest/doctest
