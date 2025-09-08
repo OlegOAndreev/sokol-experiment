@@ -22,5 +22,6 @@ Checks: '
     -modernize-use-designated-initializers,
     -modernize-use-nodiscard,
     -modernize-use-ranges,
-    -modernize-use-trailing-return-type
+    -modernize-use-trailing-return-type,
+    -performance-enum-size,
 '

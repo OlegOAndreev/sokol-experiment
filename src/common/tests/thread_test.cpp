@@ -4,13 +4,13 @@
 
 #include <atomic>
 #include <chrono>
-#include <latch>
 #include <mutex>
 #include <semaphore>
 #include <thread>
 #include <unordered_set>
 #include <vector>
 
+#include "common/sync.h"
 #include "common/thread_name.h"
 #include "common_test.h"
 
@@ -259,15 +259,17 @@ TEST_CASE("ThreadPool stress test") {
 
     SUBCASE("call submit inside the thread pool") {
         ThreadPool pool{"", 8};
-        const size_t num_outer_tasks = 2000;
-        const size_t num_inner_tasks = 500;
+        const size_t num_outer_tasks = 10000;
+        const size_t num_inner_tasks = 100;
         std::atomic<size_t> sum = 0;
-        std::latch outer_complete{num_outer_tasks};
+        TaskLatch outer_complete{num_outer_tasks};
 
         pool.submit_for(
             [&sum, &outer_complete](size_t i) {
-                thread_pool().submit_for([&sum, i](size_t j) { sum += i * num_inner_tasks + j; }, num_inner_tasks - 1);
-                thread_pool().submit([&sum, i] { sum += (i + 1) * num_inner_tasks - 1; });
+                thread_pool().submit_for([&sum, i](size_t j) { sum += i * num_inner_tasks + j; }, num_inner_tasks / 2);
+                for (size_t j = num_inner_tasks / 2; j < num_inner_tasks; j++) {
+                    thread_pool().submit([&sum, i, j] { sum += i * num_inner_tasks + j; });
+                }
                 outer_complete.count_down();
             },
             num_outer_tasks);
@@ -279,7 +281,7 @@ TEST_CASE("ThreadPool stress test") {
 
         size_t total_tasks = num_outer_tasks * num_inner_tasks;
         size_t expected_sum = total_tasks * (total_tasks - 1) / 2;
-        CHECK(sum == expected_sum);
+        CHECK(sum.load() == expected_sum);
     }
 }
 
@@ -317,161 +319,6 @@ TEST_CASE("ThreadPool with single thread") {
         CHECK(order.size() == 10);
         for (int i = 0; i < 10; i++) {
             CHECK(order[i] == i);
-        }
-    }
-}
-
-TEST_CASE("ThreadPool with parallel") {
-    SUBCASE("basic") {
-        ThreadPool pool{"", 2};
-        std::array<int, 3> results = {};
-
-        pool.parallel([&results] { results[0] = 12; }, [&results] { results[1] = 34; },
-                      [&results] { results[2] = 56; });
-
-        CHECK(results[0] == 12);
-        CHECK(results[1] == 34);
-        CHECK(results[2] == 56);
-    }
-
-    SUBCASE("single") {
-        ThreadPool pool{"", 2};
-        int counter = 0;
-
-        pool.parallel([&counter] { counter = 123; });
-
-        CHECK(counter == 123);
-    }
-
-    SUBCASE("inner parallel") {
-        ThreadPool pool{"", 2};
-        std::atomic<int> outer_counter = 0;
-        std::atomic<int> inner_counter = 0;
-
-        pool.parallel(
-            [&outer_counter, &inner_counter] {
-                outer_counter++;
-                thread_pool().parallel([&inner_counter] { inner_counter += 2; });
-            },
-            [&outer_counter, &inner_counter] {
-                outer_counter += 3;
-                thread_pool().parallel([&inner_counter] { inner_counter += 4; });
-            },
-            [&outer_counter, &inner_counter] {
-                outer_counter += 5;
-                thread_pool().parallel([&inner_counter] { inner_counter += 6; });
-            });
-
-        CHECK(outer_counter == 1 + 3 + 5);
-        CHECK(inner_counter == 2 + 4 + 6);
-    }
-
-    SUBCASE("parallel between pools") {
-        ThreadPool pool1{"", 2};
-        ThreadPool pool2{"", 2};
-        std::atomic<int> pool1_counter = 0;
-        std::atomic<int> pool2_counter = 0;
-
-        // f2 bumps pool2_counter by 1 and pool1_counter by 2
-        auto f2 = [&pool1, &pool1_counter, &pool2, &pool2_counter] {
-            pool2_counter++;
-            pool1.parallel([&pool1_counter] { pool1_counter++; }, [&pool1_counter] { pool1_counter++; });
-        };
-        // f1 bumps pool2_counter by 3 and pool1_counter by 6
-        auto f1 = [&pool2, &f2] { pool2.parallel(f2, f2, f2); };
-        pool1.parallel(f1, f1, f1, f1);
-
-        CHECK(pool1_counter == 24);
-        CHECK(pool2_counter == 12);
-    }
-}
-
-TEST_CASE("ThreadPool with parallel_for") {
-    SUBCASE("basic") {
-        ThreadPool pool{"", 10};
-        std::vector<int> results(1000);
-
-        pool.parallel_for([&results](size_t index) { results[index] = int(index) + 456; }, results.size());
-
-        for (size_t i = 0; i < results.size(); i++) {
-            CHECK(results[i] == int(i) + 456);
-        }
-    }
-
-    SUBCASE("inner parallel_for") {
-        ThreadPool pool{"", 2};
-        const size_t outer_count = 100;
-        const size_t inner_count = 200;
-        std::atomic<int> outer_counter = 0;
-        std::atomic<int> inner_counter = 0;
-
-        pool.parallel_for(
-            [&outer_counter, &inner_counter](size_t i) {
-                outer_counter++;
-                thread_pool().parallel_for([&inner_counter](size_t j) { inner_counter += 3; }, inner_count);
-            },
-            outer_count);
-
-        CHECK(outer_counter == outer_count);
-        CHECK(inner_counter.load() == inner_count * outer_count * 3);
-    }
-
-    SUBCASE("parallel_for between pools") {
-        ThreadPool pool1{"", 2};
-        ThreadPool pool2{"", 2};
-        std::atomic<int> pool1_counter = 0;
-        std::atomic<int> pool2_counter = 0;
-
-        // f2 bumps pool2_counter by 1 and pool1_counter by 100
-        auto f2 = [&pool1, &pool1_counter, &pool2, &pool2_counter](size_t) {
-            pool2_counter++;
-            pool1.parallel_for([&pool1_counter](size_t) { pool1_counter++; }, 100);
-        };
-        // f1 bumps pool2_counter by 200 and pool1_counter by 20000
-        auto f1 = [&pool2, &f2](size_t) { pool2.parallel_for(f2, 200); };
-
-        pool1.parallel_for(f1, 300);
-
-        CHECK(pool1_counter.load() == 20000 * 300);
-        CHECK(pool2_counter.load() == 200 * 300);
-        // CHECK(pool1_counter.load() == 100 * 300);
-        // CHECK(pool2_counter.load() == 1 * 300);
-    }
-}
-
-// TEST_CASE("ThreadPool with parallel_for stress test") {
-//     SUBCASE("multiple inner loops") {
-//         ThreadPool pool{"", 10};
-//         std::atomic<int> counter = 0;
-
-//         pool.parallel_for([&results](size_t index) { results[index] = int(index) + 456; }, results.size());
-
-//         for (size_t i = 0; i < results.size(); i++) {
-//             CHECK(results[i] == int(i) + 456);
-//         }
-//     }
-// }
-
-TEST_CASE("ThreadPool with move-only lambda") {
-    SUBCASE("parallel") {
-        ThreadPool pool{"", 1};
-        MoveOnly mo{123};
-        size_t counter = 0;
-
-        pool.parallel([mo = std::move(mo), &counter] { counter += mo.value; });
-
-        CHECK(counter == 123);
-    }
-
-    SUBCASE("parallel_for") {
-        ThreadPool pool{"", 1};
-        MoveOnly mo{123};
-        std::vector<int> results(100);
-
-        pool.parallel_for([mo = std::move(mo), &results](size_t i) { results[i] = int(i) + mo.value; }, results.size());
-
-        for (size_t i = 0; i < results.size(); i++) {
-            CHECK(results[i] == int(i) + 123);
         }
     }
 }

@@ -12,7 +12,7 @@ public:
     // Initialize the queue with capacity.
     Queue(size_t capacity = 16) : data(std::make_unique<T[]>(capacity)), capacity(capacity) {
         if ((capacity & (capacity - 1)) != 0) {
-            // Capacity must be power of two
+            // Capacity must be power of two.
             abort();
         }
     }
@@ -24,6 +24,7 @@ public:
             ensure_capacity();
         }
         data[tail & (capacity - 1)] = std::forward<U>(item);
+        // See size() why this increment is correct.
         tail++;
     }
 
@@ -42,11 +43,16 @@ public:
             // The queue is empty.
             abort();
         }
+        // See size() why this increment is correct.
         head++;
     }
 
     // Return the queue size.
     size_t size() const {
+        // NOTE: Queue requires capacity to be power of two not only for faster modulo operations (& instead of %), but
+        // also because it relies on wrapping around SIZE_MAX for head and tail:
+        //  1. size() == tail - head stands even if tail < head
+        //  2. (tail + 1) & (capacity - 1) is the next item after tail & (capacity - 1) even when tail wraps around
         return tail - head;
     }
 

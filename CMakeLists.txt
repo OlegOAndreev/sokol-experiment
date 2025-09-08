@@ -28,7 +28,7 @@ if(SCCACHE_PATH)
   set(CMAKE_CXX_COMPILER_LAUNCHER ${SCCACHE_PATH})
 endif()
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_executable(${PROJECT_NAME})
@@ -82,6 +82,7 @@ compile_glsl(${PROJECT_NAME} src/shaders/quad_shader.glsl)
 
 set(COMMON_SOURCES
         src/common/io.cpp
+        src/common/sync.cpp
         src/common/thread.cpp
 )
 set(HL1_SOURCES
@@ -106,8 +107,9 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 
 if(EMSCRIPTEN)
   target_link_options(${PROJECT_NAME} PRIVATE
+        -sEXIT_RUNTIME=0
+        -sSTACK_OVERFLOW_CHECK=1
         # -sASSERTIONS
-        # -sNO_EXIT_RUNTIME
         # --memoryprofiler
   )
 endif()
