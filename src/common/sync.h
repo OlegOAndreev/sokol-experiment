@@ -22,8 +22,14 @@ class TaskLatch {
 public:
     // Init TaskLatch with required count, count can't be greater than PTRDIFF_MAX.
     TaskLatch(size_t count);
+
     // Decrement the counter by given amount, signal the waiters if counter reaches zero.
     void count_down(size_t amount = 1);
+    // Reset the counter to the given value. If count is zero, immediately signal the waiters.
+    void reset(size_t count);
+
+    // Return current value of counter.
+    size_t remaining() const;
     // Return true if counter is zero.
     bool done() const;
     // Wait until counter reaches zero. Cannot be called from ThreadPool tasks.
@@ -66,7 +72,7 @@ public:
             }
             inner.push(std::move(value));
         }
-        queue_size++;
+        queue_size.fetch_add(1);
         condvar.notify_one();
         return true;
     }
@@ -87,7 +93,7 @@ public:
         }
         dst = std::move(inner.front());
         inner.pop();
-        queue_size--;
+        queue_size.fetch_sub(1);
         return true;
     }
 
@@ -108,18 +114,18 @@ public:
         }
         dst = std::move(inner.front());
         inner.pop();
-        queue_size--;
+        queue_size.fetch_sub(1);
         return true;
     }
 
     // Return the queue size.
     size_t size() const {
-        return queue_size;
+        return queue_size.load();
     }
 
     // Return true if the queue is empty.
     bool empty() const {
-        return queue_size == 0;
+        return queue_size.load() == 0;
     }
 
 private:

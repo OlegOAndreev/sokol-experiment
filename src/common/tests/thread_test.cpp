@@ -27,11 +27,11 @@ TEST_CASE("ThreadPool basic functionality") {
         ThreadPool pool("", 2);
         std::atomic<int> counter = 0;
 
-        bool submitted = pool.submit([&counter]() { counter++; });
+        bool submitted = pool.submit([&counter]() { counter.fetch_add(1); });
 
         CHECK(submitted);
         pool.shutdown();
-        CHECK(counter == 1);
+        CHECK(counter.load() == 1);
     }
 
     SUBCASE("submit multiple tasks") {
@@ -40,12 +40,12 @@ TEST_CASE("ThreadPool basic functionality") {
         const int num_tasks = 10;
 
         for (int i = 0; i < num_tasks; i++) {
-            bool submitted = pool.submit([&counter]() { counter++; });
+            bool submitted = pool.submit([&counter]() { counter.fetch_add(1); });
             CHECK(submitted);
         }
 
         pool.shutdown();
-        CHECK(counter == num_tasks);
+        CHECK(counter.load() == num_tasks);
     }
 }
 
@@ -55,13 +55,13 @@ TEST_CASE("ThreadPool submit_for") {
         const size_t range_size = 100;
         std::vector<std::atomic<bool>> executed(range_size);
 
-        bool submitted = pool.submit_for([&executed](size_t index) { executed[index] = true; }, range_size);
+        bool submitted = pool.submit_for([&executed](size_t index) { executed[index].store(true); }, range_size);
 
         CHECK(submitted);
         pool.shutdown();
 
         for (size_t i = 0; i < range_size; i++) {
-            CHECK(executed[i]);
+            CHECK(executed[i].load());
         }
     }
 
@@ -69,11 +69,11 @@ TEST_CASE("ThreadPool submit_for") {
         ThreadPool pool("", 2);
         std::atomic<int> counter = 0;
 
-        bool submitted = pool.submit_for([&counter](size_t) { counter++; }, 0);
+        bool submitted = pool.submit_for([&counter](size_t) { counter.fetch_add(1); }, 0);
 
         CHECK(submitted);
         pool.shutdown();
-        CHECK(counter == 0);
+        CHECK(counter.load() == 0);
     }
 
     SUBCASE("submit range ensures all indices are processed") {
@@ -95,25 +95,25 @@ TEST_CASE("ThreadPool submit_for") {
 TEST_CASE("ThreadPool shutdown behavior") {
     SUBCASE("shutdown waits for tasks to complete") {
         ThreadPool pool("", 1);
-        std::atomic<bool> task_started = false;
-        std::atomic<bool> task_completed = false;
+        std::atomic_flag task_started = false;
+        std::atomic_flag task_completed = false;
 
         pool.submit([&task_started, &task_completed]() {
-            task_started = true;
+            task_started.test_and_set();
             std::this_thread::sleep_for(std::chrono::milliseconds(50));
-            task_completed = true;
+            task_completed.test_and_set();
         });
 
         // Give task time to start
-        while (!task_started) {
+        while (!task_started.test()) {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
 
-        CHECK(task_started);
-        CHECK(!task_completed);
+        CHECK(task_started.test());
 
         pool.shutdown();
-        CHECK(task_completed);
+
+        CHECK(task_completed.test());
     }
 
     SUBCASE("cannot submit after shutdown") {
@@ -121,20 +121,20 @@ TEST_CASE("ThreadPool shutdown behavior") {
         pool.shutdown();
 
         std::atomic<int> counter = 0;
-        bool submitted = pool.submit([&counter]() { counter++; });
+        bool submitted = pool.submit([&counter]() { counter.fetch_add(1); });
 
         CHECK(!submitted);
-        CHECK(counter == 0);
+        CHECK(counter.load() == 0);
     }
 
     SUBCASE("shutdown is idempotent") {
         ThreadPool pool("", 2);
         std::atomic<int> counter = 0;
 
-        pool.submit([&counter]() { counter++; });
+        pool.submit([&counter]() { counter.fetch_add(1); });
 
         pool.shutdown();
-        CHECK(counter == 1);
+        CHECK(counter.load() == 1);
 
         // Second shutdown should be safe
         pool.shutdown();
@@ -178,17 +178,17 @@ TEST_CASE("ThreadPool local_thread_pool") {
         for (int i = 0; i < 10; i++) {
             pool.submit([&worker_count, &non_worker_count]() {
                 if (local_thread_pool() != nullptr) {
-                    worker_count++;
+                    worker_count.fetch_add(1);
                 } else {
-                    non_worker_count++;
+                    non_worker_count.fetch_add(1);
                 }
             });
         }
 
         pool.shutdown();
 
-        CHECK(worker_count == 10);
-        CHECK(non_worker_count == 0);
+        CHECK(worker_count.load() == 10);
+        CHECK(non_worker_count.load() == 0);
     }
 
 
@@ -198,8 +198,8 @@ TEST_CASE("ThreadPool local_thread_pool") {
         std::atomic<size_t> worker_idx = 0;
 
         pool.submit([&worker_name, &worker_idx] {
-            worker_name = local_thread_pool_name();
-            worker_idx = local_thread_pool_worker_id();
+            worker_name.store(local_thread_pool_name());
+            worker_idx.store(local_thread_pool_worker_id());
         });
 
         pool.shutdown();
@@ -216,11 +216,11 @@ TEST_CASE("ThreadPool stress test") {
         std::atomic<int> counter = 0;
 
         for (int i = 0; i < num_tasks; i++) {
-            pool.submit([&counter]() { counter++; });
+            pool.submit([&counter]() { counter.fetch_add(1); });
         }
 
         pool.shutdown();
-        CHECK(counter == num_tasks);
+        CHECK(counter.load() == num_tasks);
     }
 
     SUBCASE("mixed single and range tasks") {
@@ -231,16 +231,16 @@ TEST_CASE("ThreadPool stress test") {
         // Submit mix of single and range tasks
         for (int i = 0; i < 50; i++) {
             if (i % 2 == 0) {
-                pool.submit([&single_counter]() { single_counter++; });
+                pool.submit([&single_counter]() { single_counter.fetch_add(1); });
             } else {
-                pool.submit_for([&range_counter](size_t) { range_counter++; }, 10);
+                pool.submit_for([&range_counter](size_t) { range_counter.fetch_add(1); }, 10);
             }
         }
 
         pool.shutdown();
 
-        CHECK(single_counter == 25);  // 50/2 single tasks
-        CHECK(range_counter == 250);  // 25 * 10 range tasks
+        CHECK(single_counter.load() == 25);  // 50/2 single tasks
+        CHECK(range_counter.load() == 250);  // 25 * 10 range tasks
     }
 
     SUBCASE("large range task") {
@@ -248,13 +248,13 @@ TEST_CASE("ThreadPool stress test") {
         const size_t large_range = 100000;
         std::atomic<size_t> sum = 0;
 
-        pool.submit_for([&sum](size_t index) { sum += index; }, large_range);
+        pool.submit_for([&sum](size_t index) { sum.fetch_add(index); }, large_range);
 
         pool.shutdown();
 
         // Sum of 0..99999 = n*(n-1)/2
         size_t expected_sum = large_range * (large_range - 1) / 2;
-        CHECK(sum == expected_sum);
+        CHECK(sum.load() == expected_sum);
     }
 
     SUBCASE("call submit inside the thread pool") {
@@ -266,9 +266,10 @@ TEST_CASE("ThreadPool stress test") {
 
         pool.submit_for(
             [&sum, &outer_complete](size_t i) {
-                thread_pool().submit_for([&sum, i](size_t j) { sum += i * num_inner_tasks + j; }, num_inner_tasks / 2);
+                thread_pool().submit_for([&sum, i](size_t j) { sum.fetch_add(i * num_inner_tasks + j); },
+                                         num_inner_tasks / 2);
                 for (size_t j = num_inner_tasks / 2; j < num_inner_tasks; j++) {
-                    thread_pool().submit([&sum, i, j] { sum += i * num_inner_tasks + j; });
+                    thread_pool().submit([&sum, i, j] { sum.fetch_add(i * num_inner_tasks + j); });
                 }
                 outer_complete.count_down();
             },
@@ -292,10 +293,10 @@ TEST_CASE("ThreadPool destructor behavior") {
         {
             ThreadPool pool("", 2);
             for (int i = 0; i < 100; i++) {
-                pool.submit([&counter]() { counter++; });
+                pool.submit([&counter]() { counter.fetch_add(1); });
             }
         }
-        CHECK(counter == 100);
+        CHECK(counter.load() == 100);
     }
 }
 

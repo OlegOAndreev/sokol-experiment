@@ -7,11 +7,10 @@
 #include <util/sokol_debugtext.h>
 #include <util/sokol_imgui.h>
 
-#include <atomic>
-
+#include "common/defer.h"
 #include "common/io.h"
-#include "common/queue.h"
 #include "common/slog.h"
+#include "common/sync.h"
 #include "common/thread.h"
 #include "hl1/wad3.h"
 #include "hl1/wad_display.h"
@@ -22,8 +21,8 @@ const char* wads_list_path = "data/hl1/wads.txt";
 struct DisplayState {
     WAD3Display wad_display;
 
-    std::vector<WAD3Parser> parsed_wads;
-    std::atomic<size_t> remaining_wad_count = 0;
+    MPMCQueue<WAD3Parser> parsed_wads;
+    TaskLatch parsed_wads_latch{0};
     bool finished_loading = false;
 };
 
@@ -34,19 +33,19 @@ bool start_parsing() {
     if (!file_read_lines(wads_list_path, wad_file_list)) {
         return false;
     }
-    g_state.parsed_wads.resize(wad_file_list.size());
-    g_state.remaining_wad_count = g_state.parsed_wads.size();
+    g_state.parsed_wads_latch.reset(wad_file_list.size());
 
     std::string wad_dir = path_get_directory(wads_list_path);
-    for (size_t i = 0; i < wad_file_list.size(); i++) {
-        std::string wad_path = path_join(wad_dir.c_str(), wad_file_list[i].c_str());
-        WAD3Parser& wad = g_state.parsed_wads[i];
-        thread_pool().submit([wad_path, &wad]() mutable {
+    for (const std::string& wad_file : wad_file_list) {
+        std::string wad_path = path_join(wad_dir.c_str(), wad_file.c_str());
+        thread_pool().submit([wad_path]() mutable {
+            DEFER(g_state.parsed_wads_latch.count_down());
             FileContents wad_contents;
             if (file_read_contents(wad_path.c_str(), wad_contents)) {
+                WAD3Parser wad;
                 wad.parse(wad_contents);
+                g_state.parsed_wads.push(std::move(wad));
             }
-            g_state.remaining_wad_count--;
         });
     }
     return true;
@@ -56,10 +55,11 @@ void process_parsed() {
     if (g_state.finished_loading) {
         return;
     }
-    if (g_state.remaining_wad_count == 0) {
-        for (const WAD3Parser& wad : g_state.parsed_wads) {
-            g_state.wad_display.add_wad(wad);
-        }
+    WAD3Parser wad;
+    while (g_state.parsed_wads.try_pop(wad)) {
+        g_state.wad_display.add_wad(wad);
+    }
+    if (g_state.parsed_wads_latch.done()) {
         g_state.wad_display.loading = false;
         g_state.finished_loading = true;
     }

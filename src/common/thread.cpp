@@ -68,7 +68,7 @@ struct ThreadPool::Impl {
             }
             queue.push(std::move(task));
         }
-        num_inflight_tasks++;
+        num_inflight_tasks.fetch_add(1);
         // We rely on the worker to notify next thread if required.
         condvar.notify_one();
         return true;
@@ -104,7 +104,7 @@ struct ThreadPool::Impl {
 
             run_task(task);
             if (popped_task) {
-                num_inflight_tasks--;
+                num_inflight_tasks.fetch_sub(1);
             }
         }
     }
@@ -156,7 +156,7 @@ void ThreadPool::shutdown() {
 }
 
 size_t ThreadPool::num_inflight_tasks() {
-    return impl->num_inflight_tasks;
+    return impl->num_inflight_tasks.load();
 }
 
 size_t ThreadPool::num_threads() const {

@@ -28,8 +28,25 @@ void TaskLatch::count_down(size_t amount) {
     }
 }
 
+void TaskLatch::reset(size_t count) {
+    if (count > PTRDIFF_MAX) {
+        abort();
+    }
+    this->count.store(ptrdiff_t(count));
+    if (count == 0) {
+        {
+            std::lock_guard<std::mutex> lock(mutex);
+        }
+        condvar.notify_all();
+    }
+}
+
+size_t TaskLatch::remaining() const {
+    return count.load();
+}
+
 bool TaskLatch::done() const {
-    return count == 0;
+    return count.load() == 0;
 }
 
 void TaskLatch::wait() {
@@ -39,5 +56,5 @@ void TaskLatch::wait() {
     }
 #endif
     std::unique_lock<std::mutex> lock(mutex);
-    condvar.wait(lock, [this] { return count == 0; });
+    condvar.wait(lock, [this] { return count.load() == 0; });
 }
