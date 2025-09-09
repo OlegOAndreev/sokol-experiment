@@ -12,9 +12,27 @@
 TEST_SUITE_BEGIN("sync");
 
 TEST_CASE("TaskLatch basic operations") {
+    SUBCASE("default latch is done") {
+        TaskLatch latch;
+        latch.wait();
+        CHECK(latch.done());
+    }
+
     SUBCASE("newly created latch is not done") {
         TaskLatch latch(1);
         CHECK(!latch.done());
+    }
+
+    SUBCASE("latch reset") {
+        TaskLatch latch;
+        latch.wait();
+        CHECK(latch.done());
+
+        latch.reset(2);
+        CHECK(!latch.done());
+        latch.count_down();
+        latch.count_down();
+        CHECK(latch.done());
     }
 
     SUBCASE("count down to zero makes latch done") {

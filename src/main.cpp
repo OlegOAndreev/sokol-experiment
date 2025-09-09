@@ -22,7 +22,7 @@ struct DisplayState {
     WAD3Display wad_display;
 
     MPMCQueue<WAD3Parser> parsed_wads;
-    TaskLatch parsed_wads_latch{0};
+    TaskLatch parsed_wads_latch;
     bool finished_loading = false;
 };
 

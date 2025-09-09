@@ -20,8 +20,9 @@
 // A simple replacement for std::latch.
 class TaskLatch {
 public:
-    // Init TaskLatch with required count, count can't be greater than PTRDIFF_MAX.
-    TaskLatch(size_t count);
+    // Init TaskLatch with required count, count can't be greater than PTRDIFF_MAX. If the count is zero, the latch
+    // is immediately done (it can later be reset() to desired count).
+    TaskLatch(size_t count = 0);
 
     // Decrement the counter by given amount, signal the waiters if counter reaches zero.
     void count_down(size_t amount = 1);
