@@ -4,8 +4,6 @@
 #include <cstdint>
 #include <mutex>
 
-#include "slog.h"
-#include "thread.h"
 
 TaskLatch::TaskLatch(size_t count) : count(ptrdiff_t(count)) {
     if (count > PTRDIFF_MAX) {
@@ -22,7 +20,7 @@ void TaskLatch::count_down(size_t amount) {
         {
             // An empty lock is required to prevent missed notify when the waiting thread calls wait() concurrently with
             // count_down().
-            std::lock_guard<std::mutex> lock{mutex};
+            std::lock_guard<std::mutex> lock(mutex);
         }
         condvar.notify_all();
     } else if (result <= 0) {
@@ -35,9 +33,11 @@ bool TaskLatch::done() const {
 }
 
 void TaskLatch::wait() {
-    if (local_thread_pool() != nullptr) {
-        SLOG_ERROR("TaskLatch::wait() called inside thread pool");
+#if defined(CHECK_THREAD_POOL_BLOCKING)
+    if (is_thread_pool_worker()) {
+        SLOG_ERROR("TaskLatch::wait() called inside the thread pool");
     }
-    std::unique_lock<std::mutex> lock{mutex};
+#endif
+    std::unique_lock<std::mutex> lock(mutex);
     condvar.wait(lock, [this] { return count == 0; });
 }

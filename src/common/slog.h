@@ -5,7 +5,9 @@
 #include <cstdarg>
 #include <cstdio>
 
+#include "common.h"
 #include "thread_name.h"
+
 
 // Convenient wrapper to format string and log info or error using slog_func from sokol. Usage: SLOG_INFO("mah format
 // %d", 123)
@@ -17,7 +19,8 @@
 #else
 #define _MY_SLOG_FMT_ARGS(FORMAT_IDX)
 #endif
-_MY_SLOG_FMT_ARGS(4) inline void _my_slog_impl(int log_level, const char* filename, int line_nr, const char* fmt, ...) {
+NO_INLINE _MY_SLOG_FMT_ARGS(4) inline void _my_slog_impl(int log_level, const char* filename, int line_nr,
+                                                         const char* fmt, ...) {
     char tag_buffer[1000];
     const char* tag = nullptr;
     char buffer[10000];

@@ -46,7 +46,7 @@ struct ThreadPool::Impl {
 
     void shutdown() {
         {
-            std::lock_guard<std::mutex> lock{mutex};
+            std::lock_guard<std::mutex> lock(mutex);
             if (closed) {
                 return;
             }
@@ -62,7 +62,7 @@ struct ThreadPool::Impl {
 
     bool submit(Task&& task) {
         {
-            std::lock_guard<std::mutex> lock{mutex};
+            std::lock_guard<std::mutex> lock(mutex);
             if (closed) {
                 return false;
             }
@@ -80,7 +80,7 @@ struct ThreadPool::Impl {
             bool notify_next = false;
             bool popped_task = false;
             {
-                std::unique_lock<std::mutex> lock{mutex};
+                std::unique_lock<std::mutex> lock(mutex);
                 while (queue.empty()) {
                     if (closed) {
                         return;
@@ -184,7 +184,7 @@ ThreadPool& global_thread_pool() {
     if (num_threads == 0) {
         num_threads = 1;
     }
-    static ThreadPool thread_pool{"global-pool", num_threads};
+    static ThreadPool thread_pool("global-pool", num_threads);
     return thread_pool;
 }
 
@@ -204,4 +204,8 @@ size_t local_thread_pool_worker_id() {
         return 0;
     }
     return tl_worker_idx + 1;
+}
+
+bool is_thread_pool_worker() {
+    return tl_worker_pool != nullptr;
 }

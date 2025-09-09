@@ -123,7 +123,14 @@ if(BUILD_TESTS AND NOT(EMSCRIPTEN))
         src
   )
 
-  file(GLOB TEST_SOURCES src/**/tests/*_test.cpp)
+  set(TEST_SOURCES
+        src/common/tests/bits_test.cpp
+        src/common/tests/defer_test.cpp
+        src/common/tests/io_test.cpp
+        src/common/tests/queue_test.cpp
+        src/common/tests/sync_test.cpp
+        src/common/tests/thread_test.cpp
+  )
   target_sources(tests PRIVATE
         src/tests_main.cpp
         ${TEST_SOURCES}

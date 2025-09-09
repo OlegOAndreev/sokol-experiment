@@ -19,12 +19,12 @@ TEST_SUITE_BEGIN("thread");
 
 TEST_CASE("ThreadPool basic functionality") {
     SUBCASE("create and destroy pool") {
-        ThreadPool pool{"", 2};
+        ThreadPool pool("", 2);
         CHECK(pool.num_threads() == 2);
     }
 
     SUBCASE("submit single task") {
-        ThreadPool pool{"", 2};
+        ThreadPool pool("", 2);
         std::atomic<int> counter = 0;
 
         bool submitted = pool.submit([&counter]() { counter++; });
@@ -35,7 +35,7 @@ TEST_CASE("ThreadPool basic functionality") {
     }
 
     SUBCASE("submit multiple tasks") {
-        ThreadPool pool{"", 2};
+        ThreadPool pool("", 2);
         std::atomic<int> counter = 0;
         const int num_tasks = 10;
 
@@ -51,7 +51,7 @@ TEST_CASE("ThreadPool basic functionality") {
 
 TEST_CASE("ThreadPool submit_for") {
     SUBCASE("submit range of tasks") {
-        ThreadPool pool{"", 2};
+        ThreadPool pool("", 2);
         const size_t range_size = 100;
         std::vector<std::atomic<bool>> executed(range_size);
 
@@ -66,7 +66,7 @@ TEST_CASE("ThreadPool submit_for") {
     }
 
     SUBCASE("submit empty range") {
-        ThreadPool pool{"", 2};
+        ThreadPool pool("", 2);
         std::atomic<int> counter = 0;
 
         bool submitted = pool.submit_for([&counter](size_t) { counter++; }, 0);
@@ -77,7 +77,7 @@ TEST_CASE("ThreadPool submit_for") {
     }
 
     SUBCASE("submit range ensures all indices are processed") {
-        ThreadPool pool{"", 4};
+        ThreadPool pool("", 4);
         const size_t range_size = 1000;
         std::vector<int> results(range_size, 0);
 
@@ -94,7 +94,7 @@ TEST_CASE("ThreadPool submit_for") {
 
 TEST_CASE("ThreadPool shutdown behavior") {
     SUBCASE("shutdown waits for tasks to complete") {
-        ThreadPool pool{"", 1};
+        ThreadPool pool("", 1);
         std::atomic<bool> task_started = false;
         std::atomic<bool> task_completed = false;
 
@@ -117,7 +117,7 @@ TEST_CASE("ThreadPool shutdown behavior") {
     }
 
     SUBCASE("cannot submit after shutdown") {
-        ThreadPool pool{"", 2};
+        ThreadPool pool("", 2);
         pool.shutdown();
 
         std::atomic<int> counter = 0;
@@ -128,7 +128,7 @@ TEST_CASE("ThreadPool shutdown behavior") {
     }
 
     SUBCASE("shutdown is idempotent") {
-        ThreadPool pool{"", 2};
+        ThreadPool pool("", 2);
         std::atomic<int> counter = 0;
 
         pool.submit([&counter]() { counter++; });
@@ -143,7 +143,7 @@ TEST_CASE("ThreadPool shutdown behavior") {
 
 TEST_CASE("ThreadPool concurrent execution") {
     SUBCASE("work distribution across threads") {
-        ThreadPool pool{"", 4};
+        ThreadPool pool("", 4);
         const int num_tasks = 10000;
         std::mutex mutex;
         std::unordered_set<std::thread::id> thread_ids;
@@ -171,7 +171,7 @@ TEST_CASE("ThreadPool local_thread_pool") {
     }
 
     SUBCASE("worker threads are identified correctly") {
-        ThreadPool pool{"", 2};
+        ThreadPool pool("", 2);
         std::atomic<int> worker_count = 0;
         std::atomic<int> non_worker_count = 0;
 
@@ -193,7 +193,7 @@ TEST_CASE("ThreadPool local_thread_pool") {
 
 
     SUBCASE("worker thread has name") {
-        ThreadPool pool{"my-name", 1};
+        ThreadPool pool("my-name", 1);
         std::atomic<const char*> worker_name = nullptr;
         std::atomic<size_t> worker_idx = 0;
 
@@ -211,7 +211,7 @@ TEST_CASE("ThreadPool local_thread_pool") {
 
 TEST_CASE("ThreadPool stress test") {
     SUBCASE("many small tasks") {
-        ThreadPool pool{"", 4};
+        ThreadPool pool("", 4);
         const int num_tasks = 10000;
         std::atomic<int> counter = 0;
 
@@ -224,7 +224,7 @@ TEST_CASE("ThreadPool stress test") {
     }
 
     SUBCASE("mixed single and range tasks") {
-        ThreadPool pool{"", 4};
+        ThreadPool pool("", 4);
         std::atomic<int> single_counter = 0;
         std::atomic<int> range_counter = 0;
 
@@ -244,7 +244,7 @@ TEST_CASE("ThreadPool stress test") {
     }
 
     SUBCASE("large range task") {
-        ThreadPool pool{"", 8};
+        ThreadPool pool("", 8);
         const size_t large_range = 100000;
         std::atomic<size_t> sum = 0;
 
@@ -258,11 +258,11 @@ TEST_CASE("ThreadPool stress test") {
     }
 
     SUBCASE("call submit inside the thread pool") {
-        ThreadPool pool{"", 8};
+        ThreadPool pool("", 8);
         const size_t num_outer_tasks = 10000;
         const size_t num_inner_tasks = 100;
         std::atomic<size_t> sum = 0;
-        TaskLatch outer_complete{num_outer_tasks};
+        TaskLatch outer_complete(num_outer_tasks);
 
         pool.submit_for(
             [&sum, &outer_complete](size_t i) {
@@ -290,7 +290,7 @@ TEST_CASE("ThreadPool destructor behavior") {
     SUBCASE("destructor calls shutdown") {
         std::atomic<int> counter = 0;
         {
-            ThreadPool pool{"", 2};
+            ThreadPool pool("", 2);
             for (int i = 0; i < 100; i++) {
                 pool.submit([&counter]() { counter++; });
             }
@@ -301,14 +301,14 @@ TEST_CASE("ThreadPool destructor behavior") {
 
 TEST_CASE("ThreadPool with single thread") {
     SUBCASE("single thread pool executes tasks sequentially") {
-        ThreadPool pool{"", 1};
+        ThreadPool pool("", 1);
         std::vector<int> order;
         std::mutex mutex;
 
         for (int i = 0; i < 10; i++) {
             pool.submit([&order, &mutex, i]() {
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
-                std::lock_guard<std::mutex> lock{mutex};
+                std::lock_guard<std::mutex> lock(mutex);
                 order.push_back(i);
             });
         }

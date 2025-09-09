@@ -4,22 +4,22 @@
 #include <memory>
 #include <utility>
 
-// Simplest ringbuffer-based queue. Not thread-safe. Assumes that items are default-constructible and default
+#include "bits.h"
+#include "common.h"
+
+
+// Simplest growing ringbuffer-based queue. Not thread-safe. Assumes that items are default-constructible and default
 // constructor is cheap. The ring buffer is always the power of two to optimize operations with head/tail.
 template <typename T>
 class Queue {
 public:
     // Initialize the queue with capacity.
-    Queue(size_t capacity = 16) : data(std::make_unique<T[]>(capacity)), capacity(capacity) {
-        if ((capacity & (capacity - 1)) != 0) {
-            // Capacity must be power of two.
-            abort();
-        }
+    Queue(size_t initial = 16) : capacity(next_pow2_inclusive(initial)), data(std::make_unique<T[]>(capacity)) {
     }
 
     // Push new element and resize the buffer if required.
     template <typename U>
-    void push(U&& item) {
+    FORCE_INLINE void push(U&& item) {
         if (tail - head == capacity) {
             ensure_capacity();
         }
@@ -29,7 +29,7 @@ public:
     }
 
     // Retrieve the first element.
-    T& front() {
+    FORCE_INLINE T& front() {
         if (head == tail) {
             // The queue is empty.
             abort();
@@ -38,7 +38,7 @@ public:
     }
 
     // Pop the first element.
-    void pop() {
+    FORCE_INLINE void pop() {
         if (head == tail) {
             // The queue is empty.
             abort();
@@ -48,7 +48,7 @@ public:
     }
 
     // Return the queue size.
-    size_t size() const {
+    FORCE_INLINE size_t size() const {
         // NOTE: Queue requires capacity to be power of two not only for faster modulo operations (& instead of %), but
         // also because it relies on wrapping around SIZE_MAX for head and tail:
         //  1. size() == tail - head stands even if tail < head
@@ -57,18 +57,18 @@ public:
     }
 
     // Return true if the queue is empty.
-    bool empty() const {
+    FORCE_INLINE bool empty() const {
         return head == tail;
     }
 
 private:
+    size_t capacity = 0;
     // Assume T default construction is fast: use std::unique_ptr<T[]> instead of std::vector<T>
     std::unique_ptr<T[]> data;
-    size_t capacity;
     size_t head = 0;
     size_t tail = 0;
 
-    void ensure_capacity() {
+    NO_INLINE void ensure_capacity() {
         size_t new_capacity = capacity * 2;
         std::unique_ptr<T[]> new_data = std::make_unique<T[]>(new_capacity);
 
