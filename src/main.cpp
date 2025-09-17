@@ -7,6 +7,8 @@
 #include <util/sokol_debugtext.h>
 #include <util/sokol_imgui.h>
 
+#include <memory>
+
 #include "common/defer.h"
 #include "common/io.h"
 #include "common/slog.h"
@@ -26,25 +28,25 @@ struct DisplayState {
     bool finished_loading = false;
 };
 
-DisplayState g_state;
+std::unique_ptr<DisplayState> g_state;
 
 bool start_parsing() {
     std::vector<std::string> wad_file_list;
     if (!file_read_lines(wads_list_path, wad_file_list)) {
         return false;
     }
-    g_state.parsed_wads_latch.reset(wad_file_list.size());
+    g_state->parsed_wads_latch.reset(wad_file_list.size());
 
     std::string wad_dir = path_get_directory(wads_list_path);
     for (const std::string& wad_file : wad_file_list) {
         std::string wad_path = path_join(wad_dir.c_str(), wad_file.c_str());
         thread_pool().submit([wad_path]() mutable {
-            DEFER(g_state.parsed_wads_latch.count_down());
+            DEFER(g_state->parsed_wads_latch.count_down());
             FileContents wad_contents;
             if (file_read_contents(wad_path.c_str(), wad_contents)) {
                 WAD3Parser wad;
                 wad.parse(wad_contents);
-                g_state.parsed_wads.push(std::move(wad));
+                g_state->parsed_wads.push(std::move(wad));
             }
         });
     }
@@ -52,16 +54,16 @@ bool start_parsing() {
 }
 
 void process_parsed() {
-    if (g_state.finished_loading) {
+    if (g_state->finished_loading) {
         return;
     }
     WAD3Parser wad;
-    while (g_state.parsed_wads.try_pop(wad)) {
-        g_state.wad_display.add_wad(wad);
+    while (g_state->parsed_wads.try_pop(wad)) {
+        g_state->wad_display.add_wad(wad);
     }
-    if (g_state.parsed_wads_latch.done()) {
-        g_state.wad_display.loading = false;
-        g_state.finished_loading = true;
+    if (g_state->parsed_wads_latch.done()) {
+        g_state->wad_display.loading = false;
+        g_state->finished_loading = true;
     }
 }
 
@@ -70,6 +72,7 @@ void init_cb() {
     desc.environment = sglue_environment();
     desc.logger.func = slog_func;
     desc.image_pool_size = 10000;  // Increased to accommodate many WAD textures
+    desc.view_pool_size = 10000;
     sg_setup(desc);
 
     sdtx_desc_t sdtx_desc = {};
@@ -85,6 +88,8 @@ void init_cb() {
     simgui_desc_t simgui_desc = {};
     simgui_desc.logger.func = slog_func;
     simgui_setup(simgui_desc);
+
+    g_state = std::make_unique<DisplayState>();
 
     if (!start_parsing()) {
 #if !defined(__EMSCRIPTEN__)
@@ -109,7 +114,7 @@ void frame_cb() {
     pass.swapchain = sglue_swapchain();
     sg_begin_pass(pass);
 
-    g_state.wad_display.render();
+    g_state->wad_display.render();
 
     simgui_render();
     sg_end_pass();
@@ -117,6 +122,7 @@ void frame_cb() {
 }
 
 void cleanup_cb() {
+    g_state->wad_display.destroy();
     simgui_shutdown();
     sg_shutdown();
 }

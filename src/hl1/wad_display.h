@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include "common/struct.h"
 #include "wad3.h"
 
 
@@ -17,16 +18,26 @@ struct WAD3Display {
     // Render a new ImGui window. Must be called after ImGui::Frame().
     void render();
 
+    // Clears the resources.
+    void destroy();
+
     struct TextureEntry {
         std::string name;
-        sg_image image;
-        uint32_t width;
-        uint32_t height;
+        sg_image image = {0};
+        sg_view image_view = {0};
+        uint32_t width = 0;
+        uint32_t height = 0;
+
+        // Clears the resources.
+        void destroy();
     };
 
     struct WADEntry {
         std::string name;
         std::vector<TextureEntry> textures;
+
+        // Clears the resources.
+        void destroy();
     };
 
     bool loading = true;

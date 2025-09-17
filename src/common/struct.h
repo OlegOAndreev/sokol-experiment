@@ -7,7 +7,7 @@
     T& operator=(const T&) = delete; \
     T& operator=(T&&) = delete;
 
-// Disable move and copy
-#define DISABLE_COPY(T)   \
-    T(const T&) = delete; \
+// Disable copy (and default move constructor to silence cpp-tidy).
+#define DISABLE_COPY(T)              \
+    T(const T&) = delete;            \
     T& operator=(const T&) = delete;

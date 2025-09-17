@@ -3,8 +3,6 @@
 #include "common/struct.h"
 
 struct MoveOnly {
-    DISABLE_COPY(MoveOnly);
-
     int value;
 
     MoveOnly() : value(0) {
@@ -22,6 +20,9 @@ struct MoveOnly {
         other.value = -1;
         return *this;
     }
+
+    MoveOnly(const MoveOnly&) = delete;
+    MoveOnly& operator=(const MoveOnly&) = delete;
 
     ~MoveOnly() {
     }

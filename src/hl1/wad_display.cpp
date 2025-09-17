@@ -16,18 +16,22 @@ void WAD3Display::add_wad(const WAD3Parser& wad) {
         img_desc.width = int(miptex.width);
         img_desc.height = int(miptex.height);
         img_desc.pixel_format = SG_PIXELFORMAT_RGBA8;
-        img_desc.data.subimage[0][0].ptr = miptex.mipmaps[0].data.data();
-        img_desc.data.subimage[0][0].size = miptex.mipmaps[0].data.size();
+        img_desc.data.mip_levels[0].ptr = miptex.mipmaps[0].data.data();
+        img_desc.data.mip_levels[0].size = miptex.mipmaps[0].data.size();
         sg_image image = sg_make_image(img_desc);
+        sg_view_desc view_desc = {};
+        view_desc.texture.image = image;
+        sg_view image_view = sg_make_view(view_desc);
 
         TextureEntry entry;
         entry.name = miptex.name;
         entry.image = image;
+        entry.image_view = image_view;
         entry.width = miptex.width;
         entry.height = miptex.height;
-        wad_entry.textures.push_back(entry);
+        wad_entry.textures.push_back(std::move(entry));
     }
-    wads.push_back(wad_entry);
+    wads.push_back(std::move(wad_entry));
 }
 
 void WAD3Display::render() {
@@ -115,7 +119,7 @@ void WAD3Display::render() {
                         image_size.y *= min_scale;
                     }
 
-                    ImTextureID tex_id = ImTextureID(simgui_imtextureid(selected_texture.image));
+                    ImTextureID tex_id = ImTextureID(simgui_imtextureid(selected_texture.image_view));
                     ImGui::Image(tex_id, image_size);
                 }
             }
@@ -125,4 +129,23 @@ void WAD3Display::render() {
         }
     }
     ImGui::End();
+}
+
+void WAD3Display::destroy() {
+    for (WADEntry& entry : wads) {
+        entry.destroy();
+    }
+}
+
+void WAD3Display::WADEntry::destroy() {
+    for (TextureEntry& entry : textures) {
+        entry.destroy();
+    }
+}
+
+void WAD3Display::TextureEntry::destroy() {
+    sg_destroy_view(image_view);
+    image_view = {0};
+    sg_destroy_image(image);
+    image = {0};
 }
