@@ -29,6 +29,9 @@ std::string path_get_filename(const char* path);
 // Join two paths. If the second path is absolute, return second path. Paths are assumed to have '/' delimiters.
 std::string path_join(const char* path1, const char* path2);
 
+// Create directory and all its parents if required. Return true on success.
+bool make_directories(const char* path);
+
 // Read contents of file or return false (out is cleared on error).
 bool file_read_contents(const char* path, FileContents& out);
 // Read contents of file or return false (out is NOT cleared on error).

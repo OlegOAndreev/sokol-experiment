@@ -77,10 +77,10 @@ function(compile_glsl_with_defines TARGET SHADER_FILE OUTPUT_SUFFIX DEFINES)
     target_sources(${TARGET} PRIVATE ${OUTPUT_PATH})
 endfunction()
 
+# Adds sokol libraries for graphics app
 function(target_add_sokol TARGET SOKOL_DEBUG)
   target_include_directories(${TARGET} PRIVATE
     ${SOKOL_INCLUDE_DIR}
-    ${THIS_SOKOL_DIR}
   )
   if(APPLE)
     target_link_libraries(${TARGET} PRIVATE
@@ -123,6 +123,14 @@ function(target_add_sokol TARGET SOKOL_DEBUG)
   if(SOKOL_DEBUG)
     target_compile_definitions(${TARGET} PRIVATE SOKOL_DEBUG)
   endif()
+endfunction()
+
+# Adds sokol libraries for cli app
+function(target_add_sokol_for_cli TARGET)
+  target_include_directories(${TARGET} PRIVATE
+    ${SOKOL_INCLUDE_DIR}
+  )
+  target_sources(${TARGET} PRIVATE "${THIS_SOKOL_DIR}/sokol_for_cli.cpp")
 endfunction()
 
 # Adds minimal required files for building tests

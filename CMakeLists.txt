@@ -28,58 +28,58 @@ if(SCCACHE_PATH)
   set(CMAKE_CXX_COMPILER_LAUNCHER ${SCCACHE_PATH})
 endif()
 
+# Compile options
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_executable(${PROJECT_NAME})
-
+set(COMMON_COMPILE_FLAGS "")
+set(COMMON_LINK_FLAGS "")
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
   # See https://best.openssf.org/Compiler-Hardening-Guides/Compiler-Options-Hardening-Guide-for-C-and-C++.html
   # and https://libcxx.llvm.org/Hardening.html
-  target_compile_options(${PROJECT_NAME} PRIVATE 
-        -Wall
-        -Wextra
-        -Wno-unused-parameter
-        -D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_FAST
-        -fno-delete-null-pointer-checks
-        -fno-strict-overflow
-        -fstack-protector
-        -ftrivial-auto-var-init=zero
+  list(APPEND COMMON_COMPILE_FLAGS
+      -Wall
+      -Wextra
+      -Wno-unused-parameter
+      -D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_FAST
+      -fno-delete-null-pointer-checks
+      -fno-strict-overflow
+      -fstack-protector
+      -ftrivial-auto-var-init=zero
   )
-
   if(NOT APPLE)
-    target_compile_options(${PROJECT_NAME} PRIVATE
+    list(APPEND COMMON_COMPILE_FLAGS
         -D_FORTIFY_SOURCE=2
         -D_GLIBCXX_ASSERTIONS
     )
   endif()
-
   if(ENABLE_ASAN AND NOT(EMSCRIPTEN))
-    target_compile_options(${PROJECT_NAME} PRIVATE 
+    list(APPEND COMMON_COMPILE_FLAGS 
         -fsanitize=address
         -fsanitize=undefined
     )
-    target_link_options(${PROJECT_NAME} PRIVATE
+    list(APPEND COMMON_LINK_FLAGS
         -fsanitize=address
         -fsanitize=undefined
     )
   endif()
   if(ENABLE_TSAN AND NOT(EMSCRIPTEN))
-    target_compile_options(${PROJECT_NAME} PRIVATE 
+    list(APPEND COMMON_COMPILE_FLAGS
         -fsanitize=thread
     )
-    target_link_options(${PROJECT_NAME} PRIVATE
+    list(APPEND COMMON_LINK_FLAGS
         -fsanitize=thread
     )
   endif()
 endif()
 
-target_add_sokol(${PROJECT_NAME} ${SOKOL_DEBUG} false)
-
-target_add_macos_entitlements(${PROJECT_NAME})
-
-compile_glsl(${PROJECT_NAME} src/shaders/quad_shader.glsl)
-
+# Main executable
+add_executable(sokol-experiment)
+target_compile_options(sokol-experiment PRIVATE ${COMMON_COMPILE_FLAGS})
+target_link_options(sokol-experiment PRIVATE ${COMMON_LINK_FLAGS})
+target_add_sokol(sokol-experiment ${SOKOL_DEBUG})
+target_add_macos_entitlements(sokol-experiment)
+compile_glsl(sokol-experiment src/shaders/quad_shader.glsl)
 set(COMMON_SOURCES
         src/common/io.cpp
         src/common/sync.cpp
@@ -92,21 +92,18 @@ set(HL1_SOURCES
         src/hl1/wad_display.cpp
 )
 file(GLOB IMGUI_SOURCES vendor/imgui/*.cpp)
-
-target_sources(${PROJECT_NAME} PRIVATE
+target_sources(sokol-experiment PRIVATE
         src/main.cpp
         ${COMMON_SOURCES}
         ${HL1_SOURCES}
         ${IMGUI_SOURCES}
 )
-
-target_include_directories(${PROJECT_NAME} PRIVATE
+target_include_directories(sokol-experiment PRIVATE
         src
         vendor/imgui
 )
-
 if(EMSCRIPTEN)
-  target_link_options(${PROJECT_NAME} PRIVATE
+  target_link_options(sokol-experiment PRIVATE
         -sEXIT_RUNTIME=0
         -sSTACK_OVERFLOW_CHECK=1
         # -sASSERTIONS
@@ -114,6 +111,18 @@ if(EMSCRIPTEN)
   )
 endif()
 
+# Utilities
+add_executable(quake-unpack)
+target_sources(quake-unpack PRIVATE
+        utils/quake-unpack.cpp
+        ${COMMON_SOURCES}
+)
+target_include_directories(quake-unpack PRIVATE src)
+target_add_sokol_for_cli(quake-unpack)
+target_compile_options(quake-unpack PRIVATE ${COMMON_COMPILE_FLAGS})
+target_link_options(quake-unpack PRIVATE ${COMMON_LINK_FLAGS})
+
+# Tests
 if(BUILD_TESTS AND NOT(EMSCRIPTEN))
   add_executable(tests)
 
@@ -138,7 +147,7 @@ if(BUILD_TESTS AND NOT(EMSCRIPTEN))
         ${IMGUI_SOURCES}
   )
 
-  target_compile_options(tests PRIVATE 
+  target_compile_options(tests PRIVATE ${COMMON_COMPILE_FLAGS}
         -fsanitize=address
         -fsanitize=undefined
   )

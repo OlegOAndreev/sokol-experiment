@@ -1,5 +1,8 @@
 #include "io.h"
 
+#include <sys/stat.h>
+
+#include <cerrno>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
@@ -60,6 +63,42 @@ std::string path_join(const char* path1, const char* path2) {
     return result;
 }
 
+static bool make_directories_impl(char* path) {
+    if (mkdir(path, 0755) == 0 || errno == EEXIST) {
+        return true;
+    }
+    if (errno != ENOENT) {
+        SLOG_ERROR("Could not create directory '%s': %s", path, strerror(errno));
+        return false;
+    }
+
+    // Recursively create parent directories and retry creating the directory.
+    char* last_slash = strrchr(path, '/');
+    if (last_slash != nullptr && last_slash != path) {
+        *last_slash = '\0';
+        if (!make_directories_impl(path)) {
+            return false;
+        }
+        *last_slash = '/';
+
+        if (mkdir(path, 0755) == 0 || errno == EEXIST) {
+            return true;
+        }
+    }
+    SLOG_ERROR("Could not create directory '%s': %s", path, strerror(errno));
+    return false;
+}
+
+bool make_directories(const char* path) {
+    std::string tmp_path = path;
+    if (tmp_path.empty()) {
+        return true;
+    }
+    if (tmp_path.back() == '/') {
+        tmp_path.pop_back();
+    }
+    return make_directories_impl(tmp_path.data());
+}
 
 bool file_read_contents(const char* path, FileContents& out) {
     out.name = path;
