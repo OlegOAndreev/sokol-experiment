@@ -112,15 +112,15 @@ if(EMSCRIPTEN)
 endif()
 
 # Utilities
-add_executable(quake-unpack)
-target_sources(quake-unpack PRIVATE
-        utils/quake-unpack.cpp
+add_executable(quake-unpak)
+target_sources(quake-unpak PRIVATE
+        utils/quake-unpak.cpp
         ${COMMON_SOURCES}
 )
-target_include_directories(quake-unpack PRIVATE src)
-target_add_sokol_for_cli(quake-unpack)
-target_compile_options(quake-unpack PRIVATE ${COMMON_COMPILE_FLAGS})
-target_link_options(quake-unpack PRIVATE ${COMMON_LINK_FLAGS})
+target_include_directories(quake-unpak PRIVATE src)
+target_add_sokol_for_cli(quake-unpak)
+target_compile_options(quake-unpak PRIVATE ${COMMON_COMPILE_FLAGS})
+target_link_options(quake-unpak PRIVATE ${COMMON_LINK_FLAGS})
 
 # Tests
 if(BUILD_TESTS AND NOT(EMSCRIPTEN))

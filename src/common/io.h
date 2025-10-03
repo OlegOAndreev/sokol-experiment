@@ -36,3 +36,6 @@ bool make_directories(const char* path);
 bool file_read_contents(const char* path, FileContents& out);
 // Read contents of file or return false (out is NOT cleared on error).
 bool file_read_lines(const char* path, std::vector<std::string>& out);
+
+// Write data to file or return false.
+bool file_write_contents(const char* path, const uint8_t* data, size_t size);

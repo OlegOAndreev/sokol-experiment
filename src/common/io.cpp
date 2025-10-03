@@ -106,22 +106,22 @@ bool file_read_contents(const char* path, FileContents& out) {
 
     FILE* f = fopen(path, "rb");
     if (f == nullptr) {
-        SLOG_ERROR("Could not open '%s'", path);
+        SLOG_ERROR("Could not open '%s': %s", path, strerror(errno));
         return false;
     }
     DEFER(fclose(f));
 
     if (fseek(f, 0, SEEK_END) != 0) {
-        SLOG_ERROR("Could not seek to end of '%s'", path);
+        SLOG_ERROR("Could not seek to end of '%s': %s", path, strerror(errno));
         return false;
     }
     long file_size = ftell(f);
     if (file_size < 0) {
-        SLOG_ERROR("Could not get file size of '%s'", path);
+        SLOG_ERROR("Could not get file size of '%s': %s", path, strerror(errno));
         return false;
     }
     if (fseek(f, 0, SEEK_SET) != 0) {
-        SLOG_ERROR("Could not seek to start of '%s'", path);
+        SLOG_ERROR("Could not seek to start of '%s': %s", path, strerror(errno));
         return false;
     }
 
@@ -139,7 +139,7 @@ bool file_read_contents(const char* path, FileContents& out) {
 bool file_read_lines(const char* path, std::vector<std::string>& out) {
     FILE* f = fopen(path, "rb");
     if (f == nullptr) {
-        SLOG_ERROR("Could not open '%s'", path);
+        SLOG_ERROR("Could not open '%s': %s", path, strerror(errno));
         return false;
     }
     DEFER(fclose(f));
@@ -148,5 +148,23 @@ bool file_read_lines(const char* path, std::vector<std::string>& out) {
     while (fgets(buf, sizeof(buf), f) != nullptr) {
         out.emplace_back(buf, trim_end(buf));
     }
+    return true;
+}
+
+bool file_write_contents(const char* path, const uint8_t* data, size_t size) {
+    FILE* f = fopen(path, "wb");
+    if (f == nullptr) {
+        SLOG_ERROR("Could not open '%s' for writing: %s\n", path, strerror(errno));
+        return false;
+    }
+    DEFER(fclose(f));
+
+    size_t bytes_written = fwrite(data, 1, size, f);
+
+    if (bytes_written != size) {
+        SLOG_ERROR("Failed to write all data to file: %s (wrote %zu of %zu bytes)\n", path, bytes_written, size);
+        return false;
+    }
+
     return true;
 }
